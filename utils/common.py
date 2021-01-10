@@ -1,7 +1,10 @@
 # This file contains modules common to various models
+import collections
 import math
 
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Mish(nn.Module):
@@ -189,12 +192,6 @@ class Classify(nn.Module):
     def forward(self, x):
         z = torch.cat([self.aap(y) for y in (x if isinstance(x, list) else [x])], 1)  # cat if list
         return self.flat(self.conv(z))  # flatten to x(b,c2)
-
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import collections
 
 
 class CombConvLayer(nn.Sequential):
