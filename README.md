@@ -18,7 +18,7 @@ YOLOv4-P7** | TTA | **55.5%** | **72.9%** | **60.8%** | **41.1%** | **60.3%** | 
 ## Installation
 
 ```
-pip install opencv-python thop
+pip install opencv-python thop pycocotools
 ```
 
 ## Testing
