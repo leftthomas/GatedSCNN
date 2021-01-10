@@ -646,7 +646,6 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
 
 
 def intersect(box_a, box_b):
-
     n = box_a.size(0)
     A = box_a.size(1)
     B = box_b.size(1)
@@ -657,7 +656,8 @@ def intersect(box_a, box_b):
     inter = torch.clamp((max_xy - min_xy), min=0)
     return inter[:, :, :, 0] * inter[:, :, :, 1]
 
-def jaccard(box_a, box_b, iscrowd:bool=False):
+
+def jaccard(box_a, box_b, iscrowd: bool = False):
     use_batch = True
     if box_a.dim() == 2:
         use_batch = False
@@ -665,16 +665,17 @@ def jaccard(box_a, box_b, iscrowd:bool=False):
         box_b = box_b[None, ...]
 
     inter = intersect(box_a, box_b)
-    area_a = ((box_a[:, :, 2]-box_a[:, :, 0]) *
-              (box_a[:, :, 3]-box_a[:, :, 1])).unsqueeze(2).expand_as(inter)  # [A,B]
-    area_b = ((box_b[:, :, 2]-box_b[:, :, 0]) *
-              (box_b[:, :, 3]-box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_a = ((box_a[:, :, 2] - box_a[:, :, 0]) *
+              (box_a[:, :, 3] - box_a[:, :, 1])).unsqueeze(2).expand_as(inter)  # [A,B]
+    area_b = ((box_b[:, :, 2] - box_b[:, :, 0]) *
+              (box_b[:, :, 3] - box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
     union = area_a + area_b - inter
     out = inter / area_a if iscrowd else inter / (union + 0.0000001)
 
     return out if use_batch else out.squeeze(0)
 
-def jaccard_diou(box_a, box_b, iscrowd:bool=False):
+
+def jaccard_diou(box_a, box_b, iscrowd: bool = False):
     use_batch = True
     if box_a.dim() == 2:
         use_batch = False
@@ -682,15 +683,15 @@ def jaccard_diou(box_a, box_b, iscrowd:bool=False):
         box_b = box_b[None, ...]
 
     inter = intersect(box_a, box_b)
-    area_a = ((box_a[:, :, 2]-box_a[:, :, 0]) *
-              (box_a[:, :, 3]-box_a[:, :, 1])).unsqueeze(2).expand_as(inter)  # [A,B]
-    area_b = ((box_b[:, :, 2]-box_b[:, :, 0]) *
-              (box_b[:, :, 3]-box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_a = ((box_a[:, :, 2] - box_a[:, :, 0]) *
+              (box_a[:, :, 3] - box_a[:, :, 1])).unsqueeze(2).expand_as(inter)  # [A,B]
+    area_b = ((box_b[:, :, 2] - box_b[:, :, 0]) *
+              (box_b[:, :, 3] - box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
     union = area_a + area_b - inter
-    x1 = ((box_a[:, :, 2]+box_a[:, :, 0]) / 2).unsqueeze(2).expand_as(inter)
-    y1 = ((box_a[:, :, 3]+box_a[:, :, 1]) / 2).unsqueeze(2).expand_as(inter)
-    x2 = ((box_b[:, :, 2]+box_b[:, :, 0]) / 2).unsqueeze(1).expand_as(inter)
-    y2 = ((box_b[:, :, 3]+box_b[:, :, 1]) / 2).unsqueeze(1).expand_as(inter)
+    x1 = ((box_a[:, :, 2] + box_a[:, :, 0]) / 2).unsqueeze(2).expand_as(inter)
+    y1 = ((box_a[:, :, 3] + box_a[:, :, 1]) / 2).unsqueeze(2).expand_as(inter)
+    x2 = ((box_b[:, :, 2] + box_b[:, :, 0]) / 2).unsqueeze(1).expand_as(inter)
+    y2 = ((box_b[:, :, 3] + box_b[:, :, 1]) / 2).unsqueeze(1).expand_as(inter)
 
     t1 = box_a[:, :, 1].unsqueeze(2).expand_as(inter)
     b1 = box_a[:, :, 3].unsqueeze(2).expand_as(inter)
@@ -706,9 +707,10 @@ def jaccard_diou(box_a, box_b, iscrowd:bool=False):
     cl = torch.min(l1, l2)
     ct = torch.min(t1, t2)
     cb = torch.max(b1, b2)
-    D = (((x2 - x1)**2 + (y2 - y1)**2) / ((cr-cl)**2 + (cb-ct)**2 + 1e-7))
+    D = (((x2 - x1) ** 2 + (y2 - y1) ** 2) / ((cr - cl) ** 2 + (cb - ct) ** 2 + 1e-7))
     out = inter / area_a if iscrowd else inter / (union + 1e-7) - D ** 0.7
     return out if use_batch else out.squeeze(0)
+
 
 def box_diou(boxes1, boxes2):
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
@@ -732,20 +734,22 @@ def box_diou(boxes1, boxes2):
 
     lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
     rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # [N,M,2]
-    clt=torch.min(boxes1[:, None, :2], boxes2[:, :2])
-    crb=torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
-    x1=(boxes1[:, None, 0] + boxes1[:, None, 2])/2
-    y1=(boxes1[:, None, 1] + boxes1[:, None, 3])/2
-    x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
-    y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
-    d=(x1-x2.t())**2 + (y1-y2.t())**2
-    c=((crb-clt)**2).sum(dim=2)
+    clt = torch.min(boxes1[:, None, :2], boxes2[:, :2])
+    crb = torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
+    x1 = (boxes1[:, None, 0] + boxes1[:, None, 2]) / 2
+    y1 = (boxes1[:, None, 1] + boxes1[:, None, 3]) / 2
+    x2 = (boxes2[:, None, 0] + boxes2[:, None, 2]) / 2
+    y2 = (boxes2[:, None, 1] + boxes2[:, None, 3]) / 2
+    d = (x1 - x2.t()) ** 2 + (y1 - y2.t()) ** 2
+    c = ((crb - clt) ** 2).sum(dim=2)
 
     inter = (rb - lt).clamp(min=0).prod(2)  # [N,M]
-    return inter / (area1[:, None] + area2 - inter) - (d / c)**0.6  # iou = inter / (area1 + area2 - inter)
+    return inter / (area1[:, None] + area2 - inter) - (d / c) ** 0.6  # iou = inter / (area1 + area2 - inter)
+
 
 # For batch mode Cluster-Weighted NMS
-def non_max_suppression2(prediction, conf_thres=0.1, iou_thres=0.6, max_box=1500, merge=False, classes=None, agnostic=False):
+def non_max_suppression2(prediction, conf_thres=0.1, iou_thres=0.6, max_box=1500, merge=False, classes=None,
+                         agnostic=False):
     """Performs Non-Maximum Suppression (NMS) on inference results
     Returns:
          detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
@@ -764,10 +768,11 @@ def non_max_suppression2(prediction, conf_thres=0.1, iou_thres=0.6, max_box=1500
     multi_label = nc > 1  # multiple labels per box (adds 0.5ms/img)
 
     t = time.time()
-    output = [None] * prediction.shape[0]   
-    pred1 = (prediction < -1).float()[:,:max_box,:6]    # pred1.size()=[batch, max_box, max_box] denotes boxes without offset by class
-    pred2 = pred1[:,:,:4]+0   # pred2 denotes boxes with offset by class
-    batch_size = prediction.shape[0]   
+    output = [None] * prediction.shape[0]
+    pred1 = (prediction < -1).float()[:, :max_box,
+            :6]  # pred1.size()=[batch, max_box, max_box] denotes boxes without offset by class
+    pred2 = pred1[:, :, :4] + 0  # pred2 denotes boxes with offset by class
+    batch_size = prediction.shape[0]
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
         # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
@@ -809,23 +814,24 @@ def non_max_suppression2(prediction, conf_thres=0.1, iou_thres=0.6, max_box=1500
         c = x[:, 5] * 0 if agnostic else x[:, 5]  # classes
 
         boxes = (x[:, :4].clone() + c.view(-1, 1) * max_wh)[:max_box]  # boxes (offset by class), scores
-        pred2[xi,:] = torch.cat((boxes, pred2[xi,:]), 0)[:max_box]        # If less than max_box, padding 0.
-        pred1[xi,:] = torch.cat((x[:max_box], pred1[xi,:]), 0)[:max_box]
+        pred2[xi, :] = torch.cat((boxes, pred2[xi, :]), 0)[:max_box]  # If less than max_box, padding 0.
+        pred1[xi, :] = torch.cat((x[:max_box], pred1[xi, :]), 0)[:max_box]
 
     # Batch mode Cluster-Weighted NMS
 
-    iou = jaccard_diou(pred2, pred2).triu_(diagonal=1)    # switch to 'jaccard_diou' function for using Cluster-DIoU-NMS
+    iou = jaccard_diou(pred2, pred2).triu_(diagonal=1)  # switch to 'jaccard_diou' function for using Cluster-DIoU-NMS
     B = iou
     for i in range(200):
-        A=B
-        maxA=A.max(dim=1)[0]
-        E = (maxA<iou_thres).float().unsqueeze(2).expand_as(A)
-        B=iou.mul(E)
-        if A.equal(B)==True:
+        A = B
+        maxA = A.max(dim=1)[0]
+        E = (maxA < iou_thres).float().unsqueeze(2).expand_as(A)
+        B = iou.mul(E)
+        if A.equal(B) == True:
             break
-    keep = (maxA <= iou_thres) 
-    weights = (B*(B>0.8) + torch.eye(max_box).cuda().expand(batch_size,max_box,max_box)) * (pred1[:,:,4].reshape((batch_size,1,max_box)))
-    pred1[:,:, :4]=torch.matmul(weights,pred1[:,:,:4]) / weights.sum(2, keepdim=True)   # weighted coordinates
+    keep = (maxA <= iou_thres)
+    weights = (B * (B > 0.8) + torch.eye(max_box).cuda().expand(batch_size, max_box, max_box)) * (
+        pred1[:, :, 4].reshape((batch_size, 1, max_box)))
+    pred1[:, :, :4] = torch.matmul(weights, pred1[:, :, :4]) / weights.sum(2, keepdim=True)  # weighted coordinates
 
     for jj in range(batch_size):
         output[jj] = pred1[jj][keep[jj]]

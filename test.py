@@ -10,8 +10,8 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from utils.experimental import attempt_load
 from utils.datasets import create_dataloader
+from utils.experimental import attempt_load
 from utils.general import (
     coco80_to_coco91_class, check_file, check_img_size, compute_loss, non_max_suppression,
     scale_coords, xyxy2xywh, clip_coords, plot_images, xywh2xyxy, box_iou, output_to_target, ap_per_class)
@@ -246,8 +246,8 @@ def test(data,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov4-p5.pt', help='model.pt path(s)')
-    parser.add_argument('--data', type=str, default='data/coco128.yaml', help='*.data path')
+    parser.add_argument('--weights', nargs='+', type=str, default='yolov4-p7.pt', help='model.pt path(s)')
+    parser.add_argument('--data', type=str, default='config/coco.yaml', help='*.data path')
     parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
