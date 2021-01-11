@@ -119,15 +119,15 @@ def test(data, weights=None, batch_size=16, imgsz=640, conf_thres=0.001, iou_thr
 
             # Append to pycocotools JSON dictionary
             if save_json:
-                # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
+                # [{"name": 42, "category": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
                 image_id = Path(paths[si]).stem
                 box = pred[:, :4].clone()  # xyxy
                 scale_coords(img[si].shape[1:], box, shapes[si][0], shapes[si][1])  # to original shape
                 box = xyxy2xywh(box)  # xywh
                 box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
                 for p, b in zip(pred.tolist(), box.tolist()):
-                    jdict.append({'image_id': int(image_id) if image_id.isnumeric() else image_id,
-                                  'category_id': int(p[5]),
+                    jdict.append({'name': '{}.jpg'.format(image_id),
+                                  'category': int(p[5]),
                                   'bbox': [round(x, 3) for x in b],
                                   'score': round(p[4], 5)})
 
@@ -196,7 +196,7 @@ def test(data, weights=None, batch_size=16, imgsz=640, conf_thres=0.001, iou_thr
             (weights.split(os.sep)[-1].replace('.pt', '') if isinstance(weights, str) else '')  # filename
         print('\nCOCO mAP with pycocotools... saving %s...' % f)
         with open(f, 'w') as file:
-            json.dump(jdict, file)
+            json.dump(jdict, file, indent=4)
 
     # Return results
     model.float()  # for training
