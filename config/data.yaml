@@ -1,5 +1,5 @@
-train: data/tianchi/train_imgs  # 5388 images
-test: data/tianchi/testA_imgs  # 1762 images
+train: data/train/images  # 5388 images
+test: data/testA/images   # 1762 images
 
 # number of classes
 nc: 7
