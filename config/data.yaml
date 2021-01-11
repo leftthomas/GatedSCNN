@@ -1,4 +1,5 @@
 train: data/train/images  # 5388 images
+val: data/train/images   # 5388 images
 test: data/testA/images   # 1762 images
 
 # number of classes
