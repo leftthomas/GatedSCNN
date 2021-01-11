@@ -251,15 +251,11 @@ def train(hyp, opt, device, tb_writer=None):
             with amp.autocast(enabled=cuda):
                 # Forward                
                 pred = model(imgs)
-                #pred = model(imgs.to(memory_format=torch.channels_last))
 
                 # Loss
                 loss, loss_items = compute_loss(pred, targets.to(device), model)  # scaled by batch_size
                 if rank != -1:
                     loss *= opt.world_size  # gradient averaged between devices in DDP mode
-                # if not torch.isfinite(loss):
-                #     print('WARNING: non-finite loss, ending training ', loss_items)
-                #     return results
 
             # Backward
             scaler.scale(loss).backward()
@@ -286,7 +282,6 @@ def train(hyp, opt, device, tb_writer=None):
                     result = plot_images(images=imgs, targets=targets, paths=paths, fname=f)
                     if tb_writer and result is not None:
                         tb_writer.add_image(f, result, dataformats='HWC', global_step=epoch)
-                        # tb_writer.add_graph(model, imgs)  # add model to tensorboard
 
             # end batch ------------------------------------------------------------------------------------------------
 
@@ -373,7 +368,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights', type=str, default='yolov4-p7.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
     parser.add_argument('--data', type=str, default='config/coco.yaml', help='data.yaml path')
-    parser.add_argument('--hyp', type=str, default='', help='hyperparameters path, i.e. config/hyp.scratch.yaml')
+    parser.add_argument('--hyp', type=str, default='', help='hyperparameters path, i.e. config/scratch.yaml')
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='train,test sizes')
@@ -405,7 +400,7 @@ if __name__ == '__main__':
     if opt.local_rank == -1 or ("RANK" in os.environ and os.environ["RANK"] == "0"):
         check_git_status()
 
-    opt.hyp = opt.hyp or ('config/hyp.finetune.yaml' if opt.weights else 'config/hyp.scratch.yaml')
+    opt.hyp = opt.hyp or ('config/finetune.yaml' if opt.weights else 'config/scratch.yaml')
     opt.data, opt.cfg, opt.hyp = check_file(opt.data), check_file(opt.cfg), check_file(opt.hyp)  # check files
     assert len(opt.cfg) or len(opt.weights), 'either --cfg or --weights must be specified'
 

@@ -1,8 +1,3 @@
-# Hyperparameters for COCO training from scratch
-# python train.py --batch 40 --cfg config/yolov4-p7.yaml --weights '' --data config/coco.yaml --img 1536 --epochs 300
-# See tutorials for hyperparameter evolution https://github.com/ultralytics/yolov5#tutorials
-
-
 lr0: 0.01  # initial learning rate (SGD=1E-2, Adam=1E-3)
 momentum: 0.937  # SGD momentum/Adam beta1
 weight_decay: 0.0005  # optimizer weight decay 5e-4

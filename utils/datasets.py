@@ -158,17 +158,6 @@ class LoadWebcam:  # for inference
 
         if pipe == '0':
             pipe = 0  # local camera
-        # pipe = 'rtsp://192.168.1.64/1'  # IP camera
-        # pipe = 'rtsp://username:password@192.168.1.64/1'  # IP camera with login
-        # pipe = 'rtsp://170.93.143.139/rtplive/470011e600ef003a004ee33696235daa'  # IP traffic camera
-        # pipe = 'http://wmccpinetop.axiscam.net/mjpg/video.mjpg'  # IP golf camera
-
-        # https://answers.opencv.org/question/215996/changing-gstreamer-pipeline-to-opencv-in-pythonsolved/
-        # pipe = '"rtspsrc location="rtsp://username:password@192.168.1.64/1" latency=10 ! appsink'  # GStreamer
-
-        # https://answers.opencv.org/question/200787/video-acceleration-gstremer-pipeline-in-videocapture/
-        # https://stackoverflow.com/questions/54095699/install-gstreamer-support-for-opencv-python-package  # install help
-        # pipe = "rtspsrc location=rtsp://root:root@192.168.0.91:554/axis-media/media.amp?videocodec=h264&resolution=3840x2160 protocols=GST_RTSP_LOWER_TRANS_TCP ! rtph264depay ! queue ! vaapih264dec ! videoconvert ! appsink"  # GStreamer
 
         self.pipe = pipe
         self.cap = cv2.VideoCapture(pipe)  # video capture object
@@ -467,12 +456,6 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
     def __len__(self):
         return len(self.img_files)
 
-    # def __iter__(self):
-    #     self.count = -1
-    #     print('ran dataset iter')
-    #     #self.shuffled_vector = np.random.permutation(self.nF) if self.augment else np.arange(self.nF)
-    #     return self
-
     def __getitem__(self, index):
         if self.image_weights:
             index = self.indices[index]
@@ -522,10 +505,6 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
             # Augment colorspace
             augment_hsv(img, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
-
-            # Apply cutouts
-            # if random.random() < 0.9:
-            #     labels = cutout(img, labels)
 
         nL = len(labels)  # number of labels
         if nL:
@@ -595,11 +574,6 @@ def augment_hsv(img, hgain=0.5, sgain=0.5, vgain=0.5):
     img_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val))).astype(dtype)
     cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR, dst=img)  # no return needed
 
-    # Histogram equalization
-    # if random.random() < 0.2:
-    #     for i in range(3):
-    #         img[:, :, i] = cv2.equalizeHist(img[:, :, i])
-
 
 def load_mosaic(self, index):
     # loads images in a mosaic
@@ -646,9 +620,6 @@ def load_mosaic(self, index):
         labels4 = np.concatenate(labels4, 0)
         # np.clip(labels4[:, 1:] - s / 2, 0, s, out=labels4[:, 1:])  # use with center crop
         np.clip(labels4[:, 1:], 0, 2 * s, out=labels4[:, 1:])  # use with random_affine
-
-        # Replicate
-        # img4, labels4 = replicate(img4, labels4)
 
     # Augment
     # img4 = img4[s // 2: int(s * 1.5), s // 2:int(s * 1.5)]  # center crop (WARNING, requires box pruning)
@@ -756,12 +727,6 @@ def random_perspective(img, targets=(), degrees=10, translate=.1, scale=.1, shea
         else:  # affine
             img = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
 
-    # Visualize
-    # import matplotlib.pyplot as plt
-    # ax = plt.subplots(1, 2, figsize=(12, 6))[1].ravel()
-    # ax[0].imshow(img[:, :, ::-1])  # base
-    # ax[1].imshow(img2[:, :, ::-1])  # warped
-
     # Transform label coordinates
     n = len(targets)
     if n:
@@ -778,15 +743,6 @@ def random_perspective(img, targets=(), degrees=10, translate=.1, scale=.1, shea
         x = xy[:, [0, 2, 4, 6]]
         y = xy[:, [1, 3, 5, 7]]
         xy = np.concatenate((x.min(1), y.min(1), x.max(1), y.max(1))).reshape(4, n).T
-
-        # # apply angle-based reduction of bounding boxes
-        # radians = a * math.pi / 180
-        # reduction = max(abs(math.sin(radians)), abs(math.cos(radians))) ** 0.5
-        # x = (xy[:, 2] + xy[:, 0]) / 2
-        # y = (xy[:, 3] + xy[:, 1]) / 2
-        # w = (xy[:, 2] - xy[:, 0]) * reduction
-        # h = (xy[:, 3] - xy[:, 1]) * reduction
-        # xy = np.concatenate((x - w / 2, y - h / 2, x + w / 2, y + h / 2)).reshape(4, n).T
 
         # clip boxes
         xy[:, [0, 2]] = xy[:, [0, 2]].clip(0, width)
