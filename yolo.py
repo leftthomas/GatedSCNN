@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from utils.common import *
-from utils.general import check_anchor_order, make_divisible, time_synchronized, fuse_conv_and_bn, model_info, \
+from utils.general import check_anchor_order, make_divisible, time_synchronized, model_info, \
     scale_img, initialize_weights
 
 

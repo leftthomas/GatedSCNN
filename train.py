@@ -17,13 +17,12 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import test  # import test.py to get mAP after each epoch
+from test import test
+from utils.common import ModelEMA
 from utils.datasets import create_dataloader
-from utils.general import (
-    check_img_size, labels_to_class_weights, plot_labels, check_anchors,
-    labels_to_image_weights, compute_loss, plot_images, fitness, strip_optimizer, plot_results,
-    get_latest_run, check_git_status, check_file, increment_dir, print_mutation, plot_evolution)
-from utils.torch_utils import init_seeds, ModelEMA, select_device, intersect_dicts
+from utils.general import check_img_size, labels_to_class_weights, plot_labels, check_anchors, labels_to_image_weights, \
+    compute_loss, plot_images, fitness, strip_optimizer, plot_results, get_latest_run, check_git_status, check_file, \
+    increment_dir, print_mutation, plot_evolution, init_seeds, select_device, intersect_dicts
 from yolo import Model
 
 
@@ -38,7 +37,6 @@ def train(hyp, opt, device, tb_writer=None):
     epochs, batch_size, total_batch_size, weights, rank = \
         opt.epochs, opt.batch_size, opt.total_batch_size, opt.weights, opt.global_rank
 
-    # TODO: Use DDP logging. Only the first process is allowed to log.
     # Save run settings
     with open(log_dir / 'hyp.yaml', 'w') as f:
         yaml.dump(hyp, f, sort_keys=False)
@@ -66,8 +64,7 @@ def train(hyp, opt, device, tb_writer=None):
         model.load_state_dict(state_dict, strict=False)  # load
         print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
     else:
-        model = Model(opt.cfg, ch=3, nc=nc).to(device)# create
-        #model = model.to(memory_format=torch.channels_last)  # create
+        model = Model(opt.cfg, ch=3, nc=nc).to(device)  # create
 
     # Optimizer
     nbs = 64  # nominal batch size
@@ -98,7 +95,6 @@ def train(hyp, opt, device, tb_writer=None):
     # https://pytorch.org/docs/stable/_modules/torch/optim/lr_scheduler.html#OneCycleLR
     lf = lambda x: (((1 + math.cos(x * math.pi / epochs)) / 2) ** 1.0) * 0.8 + 0.2  # cosine
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
-    # plot_lr_scheduler(optimizer, scheduler, epochs)
 
     # Resume
     start_epoch, best_fitness = 0, 0.0
@@ -121,7 +117,7 @@ def train(hyp, opt, device, tb_writer=None):
             epochs += ckpt['epoch']  # finetune additional epochs
 
         del ckpt, state_dict
-    
+
     # Image sizes
     gs = int(max(model.stride))  # grid size (max stride)
     imgsz, imgsz_test = [check_img_size(x, gs) for x in opt.img_size]  # verify imgsz are gs-multiples
@@ -169,8 +165,6 @@ def train(hyp, opt, device, tb_writer=None):
     if rank in [-1, 0]:
         labels = np.concatenate(dataset.labels, 0)
         c = torch.tensor(labels[:, 0])  # classes
-        # cf = torch.bincount(c.long(), minlength=nc) + 1.
-        # model._initialize_biases(cf.to(device))
         plot_labels(labels, save_dir=log_dir)
         if tb_writer:
             tb_writer.add_histogram('classes', c, 0)
@@ -182,7 +176,6 @@ def train(hyp, opt, device, tb_writer=None):
     # Start training
     t0 = time.time()
     nw = max(3 * nb, 1e3)  # number of warmup iterations, max(3 epochs, 1k iterations)
-    # nw = min(nw, (epochs - start_epoch) / 2 * nb)  # limit warmup to < 1/2 of training
     maps = np.zeros(nc)  # mAP per class
     results = (0, 0, 0, 0, 0, 0, 0)  # 'P', 'R', 'mAP', 'F1', 'val GIoU', 'val Objectness', 'val Classification'
     scheduler.last_epoch = start_epoch - 1  # do not move
@@ -212,10 +205,6 @@ def train(hyp, opt, device, tb_writer=None):
                 if rank != 0:
                     dataset.indices = indices.cpu().numpy()
 
-        # Update mosaic border
-        # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
-        # dataset.mosaic_border = [b - imgsz, -b]  # height, width borders
-
         mloss = torch.zeros(4, device=device)  # mean losses
         if rank != -1:
             dataloader.sampler.set_epoch(epoch)
@@ -231,7 +220,6 @@ def train(hyp, opt, device, tb_writer=None):
             # Warmup
             if ni <= nw:
                 xi = [0, nw]  # x interp
-                # model.gr = np.interp(ni, xi, [0.0, 1.0])  # giou loss ratio (obj_loss = 1.0 or giou)
                 accumulate = max(1, np.interp(ni, xi, [1, nbs / total_batch_size]).round())
                 for j, x in enumerate(optimizer.param_groups):
                     # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
@@ -295,14 +283,12 @@ def train(hyp, opt, device, tb_writer=None):
                 ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'gr', 'names', 'stride'])
             final_epoch = epoch + 1 == epochs
             if not opt.notest or final_epoch:  # Calculate mAP
-                results, maps, times = test.test(opt.data,
-                                                 batch_size=batch_size,
-                                                 imgsz=imgsz_test,
-                                                 save_json=final_epoch and opt.data.endswith(os.sep + 'coco.yaml'),
-                                                 model=ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
-                                                 single_cls=opt.single_cls,
-                                                 dataloader=testloader,
-                                                 save_dir=log_dir)
+                results, maps, times = test(opt.data, batch_size=batch_size, imgsz=imgsz_test,
+                                            save_json=final_epoch and opt.data.endswith(os.sep + 'data.yaml'),
+                                            model=ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
+                                            single_cls=opt.single_cls,
+                                            dataloader=testloader,
+                                            save_dir=log_dir)
 
             # Write
             with open(results_file, 'a') as f:
@@ -335,8 +321,8 @@ def train(hyp, opt, device, tb_writer=None):
 
                 # Save last, best and delete
                 torch.save(ckpt, last)
-                if epoch >= (epochs-30):
-                    torch.save(ckpt, last.replace('.pt','_{:03d}.pt'.format(epoch)))
+                if epoch >= (epochs - 30):
+                    torch.save(ckpt, last.replace('.pt', '_{:03d}.pt'.format(epoch)))
                 if best_fitness == fi:
                     torch.save(ckpt, best)
                 del ckpt
@@ -351,7 +337,7 @@ def train(hyp, opt, device, tb_writer=None):
             if os.path.exists(f1):
                 os.rename(f1, f2)  # rename
                 ispt = f2.endswith('.pt')  # is *.pt
-                strip_optimizer(f2, f2.replace('.pt','_strip.pt')) if ispt else None  # strip optimizer
+                strip_optimizer(f2, f2.replace('.pt', '_strip.pt')) if ispt else None  # strip optimizer
                 os.system('gsutil cp %s gs://%s/weights' % (f2, opt.bucket)) if opt.bucket and ispt else None  # upload
         # Finish
         if not opt.evolve:
@@ -365,13 +351,12 @@ def train(hyp, opt, device, tb_writer=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='yolov4-p7.pt', help='initial weights path')
+    parser.add_argument('--weights', type=str, default='best.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
-    parser.add_argument('--data', type=str, default='config/coco.yaml', help='data.yaml path')
-    parser.add_argument('--hyp', type=str, default='', help='hyperparameters path, i.e. config/scratch.yaml')
+    parser.add_argument('--data', type=str, default='config/data.yaml', help='data.yaml path')
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
-    parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='train,test sizes')
+    parser.add_argument('--img-size', nargs='+', type=int, default=[896, 896], help='train,test sizes')
     parser.add_argument('--rect', action='store_true', help='rectangular training')
     parser.add_argument('--resume', nargs='?', const='get_last', default=False,
                         help='resume from given path/last.pt, or most recent run if blank')
@@ -400,7 +385,7 @@ if __name__ == '__main__':
     if opt.local_rank == -1 or ("RANK" in os.environ and os.environ["RANK"] == "0"):
         check_git_status()
 
-    opt.hyp = opt.hyp or ('config/finetune.yaml' if opt.weights else 'config/scratch.yaml')
+    opt.hyp = 'config/finetune.yaml' if opt.weights else 'config/scratch.yaml'
     opt.data, opt.cfg, opt.hyp = check_file(opt.data), check_file(opt.cfg), check_file(opt.hyp)  # check files
     assert len(opt.cfg) or len(opt.weights), 'either --cfg or --weights must be specified'
 
@@ -453,12 +438,12 @@ if __name__ == '__main__':
                 'hsv_v': (1, 0.0, 0.9),  # image HSV-Value augmentation (fraction)
                 'degrees': (1, 0.0, 45.0),  # image rotation (+/- deg)
                 'translate': (1, 0.0, 0.9),  # image translation (+/- fraction)
-                'scale': (1, 0.0, 0.9),  # image scale (+/- gain)
                 'shear': (1, 0.0, 10.0),  # image shear (+/- deg)
                 'perspective': (1, 0.0, 0.001),  # image perspective (+/- fraction), range 0-0.001
                 'flipud': (0, 0.0, 1.0),  # image flip up-down (probability)
                 'fliplr': (1, 0.0, 1.0),  # image flip left-right (probability)
-                'mixup': (1, 0.0, 1.0)}  # image mixup (probability)
+                'mixup': (1, 0.0, 1.0),  # image mixup (probability)
+                'scale': (1, 0.0, 0.9)}  # image scale (+/- gain)
 
         assert opt.local_rank == -1, 'DDP mode not implemented for --evolve'
         opt.notest, opt.nosave = True, True  # only test/save final epoch

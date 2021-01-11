@@ -11,26 +11,14 @@ import yaml
 from tqdm import tqdm
 
 from utils.datasets import create_dataloader
-from utils.general import check_file, check_img_size, compute_loss, non_max_suppression, scale_coords, xyxy2xywh, \
+from utils.general import check_file, check_img_size, non_max_suppression, scale_coords, xyxy2xywh, \
     clip_coords, plot_images, xywh2xyxy, box_iou, output_to_target, ap_per_class, attempt_load, select_device, \
-    time_synchronized
+    time_synchronized, compute_loss
 
 
-def test(data,
-         weights=None,
-         batch_size=16,
-         imgsz=640,
-         conf_thres=0.001,
-         iou_thres=0.6,  # for NMS
-         save_json=False,
-         single_cls=False,
-         augment=False,
-         verbose=False,
-         model=None,
-         dataloader=None,
-         save_dir='',
-         merge=False,
-         save_txt=False):
+def test(data, weights=None, batch_size=16, imgsz=640, conf_thres=0.001, iou_thres=0.6,  # for NMS
+         save_json=False, single_cls=False, augment=False, model=None, dataloader=None, save_dir='',
+         merge=False, save_txt=False):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -80,7 +68,6 @@ def test(data,
     p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
-    # model = model.to(memory_format=torch.channels_last)
     for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         img = img.to(device, non_blocking=True)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -94,7 +81,6 @@ def test(data,
             # Run model
             t = time_synchronized()
             inf_out, train_out = model(img, augment=augment)  # inference and training outputs
-            # inf_out, train_out = model(img.to(memory_format=torch.channels_last), augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
 
             # Compute loss
@@ -199,11 +185,6 @@ def test(data,
     pf = '%20s' + '%12.3g' * 6  # print format
     print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
 
-    # Print results per class
-    if verbose and nc > 1 and len(stats):
-        for i, c in enumerate(ap_class):
-            print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
-
     # Print speeds
     t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple
     if not training:
@@ -211,27 +192,11 @@ def test(data,
 
     # Save JSON
     if save_json and len(jdict):
-        f = 'detections_val2017_%s_results.json' % \
+        f = 'detections_%s_results.json' % \
             (weights.split(os.sep)[-1].replace('.pt', '') if isinstance(weights, str) else '')  # filename
         print('\nCOCO mAP with pycocotools... saving %s...' % f)
         with open(f, 'w') as file:
             json.dump(jdict, file)
-
-        try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
-            from pycocotools.coco import COCO
-            from pycocotools.cocoeval import COCOeval
-
-            imgIds = [int(Path(x).stem) for x in dataloader.dataset.img_files]
-            cocoGt = COCO(glob.glob('data/coco/annotations/instances_val*.json')[0])  # initialize COCO ground truth api
-            cocoDt = cocoGt.loadRes(f)  # initialize COCO pred api
-            cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
-            cocoEval.params.imgIds = imgIds  # image IDs to evaluate
-            cocoEval.evaluate()
-            cocoEval.accumulate()
-            cocoEval.summarize()
-            map, map50 = cocoEval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
-        except Exception as e:
-            print('ERROR: pycocotools unable to run: %s' % e)
 
     # Return results
     model.float()  # for training
@@ -243,45 +208,21 @@ def test(data,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov4-p7.pt', help='model.pt path(s)')
-    parser.add_argument('--data', type=str, default='config/coco.yaml', help='*.data path')
+    parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
+    parser.add_argument('--data', type=str, default='config/data.yaml', help='*.data path')
     parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
-    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--img-size', type=int, default=896, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.65, help='IOU threshold for NMS')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
-    parser.add_argument('--task', default='val', help="'val', 'test', 'study'")
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--single-cls', action='store_true', help='treat as single-class dataset')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--merge', action='store_true', help='use Merge NMS')
-    parser.add_argument('--verbose', action='store_true', help='report mAP by class')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     opt = parser.parse_args()
     opt.data = check_file(opt.data)  # check file
     print(opt)
 
-    if opt.task in ['val', 'test']:  # run normally
-        test(opt.data,
-             opt.weights,
-             opt.batch_size,
-             opt.img_size,
-             opt.conf_thres,
-             opt.iou_thres,
-             opt.save_json,
-             opt.single_cls,
-             opt.augment,
-             opt.verbose)
-
-    elif opt.task == 'study':  # run over a range of settings and save/plot
-        for weights in ['']:
-            f = 'study_%s_%s.txt' % (Path(opt.data).stem, Path(weights).stem)  # filename to save to
-            x = list(range(352, 832, 64))  # x axis
-            y = []  # y axis
-            for i in x:  # img-size
-                print('\nRunning %s point %s...' % (f, i))
-                r, _, t = test(opt.data, weights, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json)
-                y.append(r + t)  # results and times
-            np.savetxt(f, y, fmt='%10.4g')  # save
-        os.system('zip -r study.zip study_*.txt')
-        # plot_study_txt(f, x)  # plot
+    test(opt.data, opt.weights, opt.batch_size, opt.img_size, opt.conf_thres, opt.iou_thres,
+         opt.save_json, opt.single_cls, opt.augment)
