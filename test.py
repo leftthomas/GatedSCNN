@@ -16,7 +16,7 @@ from utils.general import check_file, check_img_size, non_max_suppression, scale
     time_synchronized, compute_loss
 
 
-def test(data, weights=None, batch_size=16, imgsz=640, conf_thres=0.001, iou_thres=0.6,  # for NMS
+def test(data, weights=None, batch_size=32, imgsz=896, conf_thres=0.001, iou_thres=0.6,  # for NMS
          save_json=False, single_cls=False, augment=False, model=None, dataloader=None, save_dir='',
          merge=False, save_txt=False):
     # Initialize/load model and set device
@@ -221,9 +221,10 @@ if __name__ == '__main__':
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--merge', action='store_true', help='use Merge NMS')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
+    parser.add_argument('--save-dir', type=str, default='inference/', help='saving directory')
     opt = parser.parse_args()
     opt.data = check_file(opt.data)  # check file
     print(opt)
 
     test(opt.data, opt.weights, opt.batch_size, opt.img_size, opt.conf_thres, opt.iou_thres,
-         opt.save_json, opt.single_cls, opt.augment)
+         opt.save_json, opt.single_cls, opt.augment, save_dir=opt.save_dir)
