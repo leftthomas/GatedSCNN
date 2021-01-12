@@ -150,7 +150,7 @@ def train(hyp, opt, device, tb_writer=None):
     if rank in [-1, 0]:
         ema.updates = start_epoch * nb // accumulate  # set EMA updates ***
         # local_rank is set to -1. Because only the first process is expected to do evaluation.
-        testloader = create_dataloader(test_path, imgsz_test, batch_size, gs, opt, hyp=hyp, augment=False,
+        testloader = create_dataloader(test_path, imgsz_test, batch_size, gs, opt, hyp=None, augment=False, pad=0.5,
                                        cache=opt.cache_images, rect=True, local_rank=-1, world_size=opt.world_size)[0]
 
     # Model parameters
@@ -184,7 +184,6 @@ def train(hyp, opt, device, tb_writer=None):
         print('Image sizes %g train, %g test' % (imgsz, imgsz_test))
         print('Using %g dataloader workers' % dataloader.num_workers)
         print('Starting training for %g epochs...' % epochs)
-    # torch.autograd.set_detect_anomaly(True)
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -283,13 +282,9 @@ def train(hyp, opt, device, tb_writer=None):
                 ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'gr', 'names', 'stride'])
             final_epoch = epoch + 1 == epochs
             if not opt.notest or final_epoch:  # Calculate mAP
-                results, maps, times = test(opt.data, batch_size=batch_size, imgsz=imgsz_test,
-                                            save_json=final_epoch and opt.data.endswith(os.sep + 'data.yaml'),
+                results, maps, times = test(opt.data, batch_size=batch_size, imgsz=imgsz_test, save_json=final_epoch,
                                             model=ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
-                                            single_cls=opt.single_cls,
-                                            dataloader=testloader,
-                                            save_dir=log_dir)
-
+                                            single_cls=opt.single_cls, dataloader=testloader, save_dir=log_dir)
             # Write
             with open(results_file, 'a') as f:
                 f.write(s + '%10.4g' * 7 % results + '\n')  # P, R, mAP, F1, test_losses=(GIoU, obj, cls)

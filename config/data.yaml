@@ -3,9 +3,9 @@ val: data/val/images   # 388 images
 test: data/testA/images   # 1762 images
 
 # number of classes
-nc: 7
+nc: 6
 
 # class names
-names: [ 'background', 'edge_anomaly', 'angular_anomaly', 'white_spot_defect', 'light_block_defect',
+names: [ 'edge_anomaly', 'angular_anomaly', 'white_spot_defect', 'light_block_defect',
          'dark_spot_block_defect', 'aperture_defect' ]
-# names: [ '背景', '边异常', '角异常', '白色点瑕疵', '浅色块瑕疵', '深色点块瑕疵', '光圈瑕疵']
+# names: [ '边异常', '角异常', '白色点瑕疵', '浅色块瑕疵', '深色点块瑕疵', '光圈瑕疵']

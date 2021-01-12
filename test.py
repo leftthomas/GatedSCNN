@@ -14,7 +14,7 @@ from utils.general import check_file, check_img_size, non_max_suppression, scale
     time_synchronized, compute_loss
 
 
-def test(data, weights=None, batch_size=32, imgsz=896, conf_thres=0.001, iou_thres=0.6,  # for NMS
+def test(data, weights=None, batch_size=32, imgsz=896, conf_thres=0.001, iou_thres=0.65,  # for NMS
          save_json=False, single_cls=False, augment=False, model=None, dataloader=None, save_dir='inference',
          merge=False):
     # Initialize/load model and set device
@@ -24,7 +24,6 @@ def test(data, weights=None, batch_size=32, imgsz=896, conf_thres=0.001, iou_thr
 
     else:  # called directly
         device = select_device(opt.device, batch_size=batch_size)
-        merge = opt.merge  # use Merge NMS
         # Load model
         model = attempt_load(weights, map_location=device)  # load FP32 model
         imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
@@ -106,7 +105,7 @@ def test(data, weights=None, batch_size=32, imgsz=896, conf_thres=0.001, iou_thr
                 scale_coords(img[si].shape[1:], box, shapes[si][0], shapes[si][1])  # to original shape
                 for p, b in zip(pred.tolist(), box.tolist()):
                     jdict.append({'name': '{}.jpg'.format(image_id),
-                                  'category': int(p[5]),
+                                  'category': int(p[5]) + 1,
                                   'bbox': [round(x, 2) for x in b],
                                   'score': round(p[4], 6)})
 
@@ -203,4 +202,4 @@ if __name__ == '__main__':
     print(opt)
 
     test(opt.data, opt.weights, opt.batch_size, opt.img_size, opt.conf_thres, opt.iou_thres,
-         opt.save_json, opt.single_cls, opt.augment, save_dir=opt.save_dir)
+         opt.save_json, opt.single_cls, opt.augment, save_dir=opt.save_dir, merge=opt.merge)

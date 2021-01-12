@@ -262,7 +262,7 @@ def attempt_load(weights, map_location=None):
         return model  # return ensemble
 
 
-def labels_to_class_weights(labels, nc=7):
+def labels_to_class_weights(labels, nc=6):
     # Get class weights (inverse frequency) from training labels
     if labels[0] is None:  # no labels loaded
         return torch.Tensor()
@@ -277,7 +277,7 @@ def labels_to_class_weights(labels, nc=7):
     return torch.from_numpy(weights)
 
 
-def labels_to_image_weights(labels, nc=7, class_weights=np.ones(7)):
+def labels_to_image_weights(labels, nc=6, class_weights=np.ones(6)):
     # Produces image weights based on class mAPs
     n = len(labels)
     class_counts = np.array([np.bincount(labels[i][:, 0].astype(np.int), minlength=nc) for i in range(n)])
@@ -916,7 +916,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None):
         cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
 
-def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max_size=640, max_subplots=16):
+def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max_size=896, max_subplots=16):
     tl = 3  # line thickness
     tf = max(tl - 1, 1)  # font thickness
     if os.path.isfile(fname):  # do not overwrite

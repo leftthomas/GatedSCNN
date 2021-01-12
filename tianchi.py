@@ -28,7 +28,7 @@ if __name__ == '__main__':
             w, h = item['image_width'], item['image_height']
             cx, cy = (tx + bx) / 2, (ty + by) / 2
             bw, bh = bx - tx, by - ty
-            file.write('{} {:.6f} {:.6f} {:.6f} {:.6f}\n'.format(item['category'], cx / w, cy / h, bw / w, bh / h))
+            file.write('{} {:.6f} {:.6f} {:.6f} {:.6f}\n'.format(item['category'] - 1, cx / w, cy / h, bw / w, bh / h))
             file.close()
             if len(annos) != 15230:
                 shutil.copy('{}/images/{}'.format(train_path, item['name']),
