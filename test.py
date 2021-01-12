@@ -212,6 +212,7 @@ if __name__ == '__main__':
     parser.add_argument('--data', type=str, default='config/data.yaml', help='*.data path')
     parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
     parser.add_argument('--img-size', type=int, default=896, help='inference size (pixels)')
+    parser.add_argument('--task', default='val', help="'val', 'test'")
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.65, help='IOU threshold for NMS')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
