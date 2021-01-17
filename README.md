@@ -20,12 +20,6 @@ conda install pytorch torchvision cudatoolkit=11.0 -c pytorch
 pip install timm
 ```
 
-- thop
-
-```
-pip install thop
-```
-
 - opencv
 
 ```

@@ -89,15 +89,18 @@ class Cityscapes(Dataset):
             w_off = random.randint(0, img_w - self.crop_w)
             image = img_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w]
             label = label_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w]
-
+        # generate grad shape
+        grad = cv2.Canny(image.astype(np.uint8), 10, 100)
         # HWC -> CHW
         image = image.transpose((2, 0, 1))
         label = np.asarray(label, np.long)
+        grad = np.asarray(grad, np.float32)
 
         # random horizontal flip
         if self.split == 'train':
             flip = np.random.choice(2) * 2 - 1
             image = image[:, :, ::flip]
             label = label[:, ::flip]
+            grad = grad[:, ::flip]
 
-        return image.copy(), label.copy(), name
+        return image.copy(), label.copy(), grad.copy(), name

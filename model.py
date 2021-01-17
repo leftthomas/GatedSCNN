@@ -123,6 +123,6 @@ class GatedSCNN(nn.Module):
         x, res1, res2, res3, res4 = self.regular_stream(x)
         gate, feat = self.shape_stream(x, res2, res3, res4, grad)
         out = self.feature_fusion(res1, res4, feat)
-        seg = F.interpolate(self.seg(out), grad.size()[-2:], mode='bilinear')
+        seg = F.interpolate(self.seg(out), grad.size()[-2:], mode='bilinear', align_corners=False)
         # [B, N, H, W], [B, 1, H, W]
         return seg, gate

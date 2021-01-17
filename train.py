@@ -7,7 +7,6 @@ import time
 import pandas as pd
 import torch
 from cityscapesscripts.helpers.labels import trainId2label
-from thop import profile, clever_format
 from torch import nn
 from torch.optim import SGD
 from torch.optim.lr_scheduler import LambdaLR
@@ -26,8 +25,8 @@ def train_val(net, data_loader, train_optimizer):
 
     total_loss, total_correct, total_time, total_num, data_bar = 0.0, 0.0, 0.0, 0, tqdm(data_loader)
     with (torch.enable_grad() if is_train else torch.no_grad()):
-        for data, target, name in data_bar:
-            data, target = data.cuda(), target.cuda()
+        for data, target, grad, name in data_bar:
+            data, target, grad = data.cuda(), target.cuda(), grad.cuda()
             torch.cuda.synchronize()
             start_time = time.time()
             out = net(data)
@@ -91,7 +90,7 @@ if __name__ == '__main__':
     if not glob.glob(search_path):
         os.system('csCreateTrainIdLabelImgs')
 
-    # dataset, model setup and optimizer config
+    # dataset, model setup, optimizer config and loss definition
     train_data = Cityscapes(root=data_path, split='train', crop_size=(crop_h, crop_w))
     val_data = Cityscapes(root=data_path, split='val')
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4)
@@ -99,11 +98,6 @@ if __name__ == '__main__':
     model = GatedSCNN(backbone_type=backbone_type, num_classes=19).cuda()
     optimizer = SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
-
-    # model profile and loss definition
-    flops, params = profile(model, inputs=(torch.randn(1, 3, crop_h, crop_w).cuda(),))
-    flops, params = clever_format([flops, params])
-    print('# Model Params: {} FLOPs: {}'.format(params, flops))
     loss_criterion = nn.CrossEntropyLoss(ignore_index=255)
 
     # training loop
