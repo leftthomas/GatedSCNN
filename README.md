@@ -1,42 +1,133 @@
-# YOLOv4-p7
+# Gated-SCNN
 
-This is the implementation of "[Scaled-YOLOv4: Scaling Cross Stage Partial Network](https://arxiv.org/abs/2011.08036)"
-using PyTorch framwork.
+A PyTorch implementation of Gated-SCNN based on ICCV 2019
+paper [Gated-SCNN: Gated Shape CNNs for Semantic Segmentation](https://arxiv.org/abs/1907.05740).
 
-## Installation
+![Network Architecture image from the paper](structure.png)
 
-```
-pip install opencv-python thop
-```
+## Requirements
 
-## Testing
-
-```
-python test.py --img 1536 --conf 0.001 --batch 8 --device 0 --data config/data.yaml --weights best.pt
-```
-
-## Training
-
-We use multiple GPUs for training, YOLOv4-P7 use input resolution 1536 for training.
+- [Anaconda](https://www.anaconda.com/download/)
+- [PyTorch](https://pytorch.org)
 
 ```
-python train.py --batch-size 64 --img 640 640 --data config/data.yaml --cfg config/model.yaml --weights '' --sync-bn --device 0,1,2,3 --name yolov4-p7
-python train.py --batch-size 64 --img 640 640 --data config/data.yaml --cfg config/model.yaml --weights 'runs/exp0/weights/last_298.pt' --sync-bn --device 0,1,2,3 --name model-tune --hyp 'config/finetune.yaml' --epochs 450 --resume
+conda install pytorch torchvision cudatoolkit=11.0 -c pytorch
 ```
 
-If your training process stucks, it due to bugs of the python. Just `Ctrl+C` to stop training and resume training by:
+- thop
 
 ```
-python train.py --batch-size 64 --img 640 640 --data config/data.yaml --cfg config/model.yaml --weights 'runs/exp0/weights/last.pt' --sync-bn --device 0,1,2,3 --resume
+pip install thop
 ```
 
-## Citation
+- opencv
 
 ```
-@article{wang2020scaled,
-  title={{Scaled-YOLOv4}: Scaling Cross Stage Partial Network},
-  author={Wang, Chien-Yao and Bochkovskiy, Alexey and Liao, Hong-Yuan Mark},
-  journal={arXiv preprint arXiv:2011.08036},
-  year={2020}
-}
+pip install opencv-python
 ```
+
+- cityscapesScripts
+
+```
+pip install git+https://github.com/mcordts/cityscapesScripts.git
+```
+
+## Expected dataset structure for Cityscapes:
+
+```
+cityscapes/
+  gtFine/
+    train/
+      aachen/
+        color.png, instanceIds.png, labelIds.png, polygons.json,
+        labelTrainIds.png
+      ...
+    val/
+  leftImg8bit/
+    train/
+    val/
+```
+
+Set environment variable `CITYSCAPES_DATASET` firstly, for example:
+
+```
+export CITYSCAPES_DATASET=/home/data/cityscapes
+```
+
+and then
+run [createTrainIdLabelImgs.py](https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/preparation/createTrainIdLabelImgs.py)
+to creat `labelTrainIds.png`.
+
+## Usage
+
+### Train model
+
+```
+python train.py --crop_h 512 --crop_w 1024
+optional arguments:
+--data_path                   Data path for cityscapes dataset [default value is '/home/data/cityscapes']
+--crop_h                      Crop height for training images [default value is 1024]
+--crop_w                      Crop width for training images [default value is 2048]
+--batch_size                  Number of data for each batch to train [default value is 12]
+--save_step                   Number of steps to save predicted results [default value is 5]
+--epochs                      Number of sweeps over the dataset to train [default value is 100]
+```
+
+Set environment variable `CITYSCAPES_DATASET` and `CITYSCAPES_RESULTS` firstly, for example:
+
+```
+export CITYSCAPES_DATASET=/home/data/cityscapes
+export CITYSCAPES_RESULTS=/home/code/Fast-SCNN/results
+```
+
+and then
+run [evalPixelLevelSemanticLabeling.py](https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/evaluation/evalPixelLevelSemanticLabeling.py)
+to eval the predicted segmentation.
+
+### Eval model
+
+```
+python viewer.py --model_weight 512_1024_model.pth
+optional arguments:
+--data_path                   Data path for cityscapes dataset [default value is '/home/data/cityscapes']
+--model_weight                Pretrained model weight [default value is '1024_2048_model.pth']
+--input_pic                   Path to the input picture [default value is 'test/berlin/berlin_000000_000019_leftImg8bit.png']
+```
+
+## Results
+
+The experiment is conducted on one NVIDIA Tesla V100 (32G) GPU, and there are some difference between this
+implementation and official implementation:
+
+1. The scales of `Multi-Scale Training` are `(0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)`;
+2. No `dual task loss` used;
+3. `Adam` optimizer with learning rate `1e-3` is used to train this model;
+4. No `Polynomial Learning Scheduler` used.
+
+<table>
+	<tbody>
+		<!-- START TABLE -->
+		<!-- TABLE HEADER -->
+		<th>Params (M)</th>
+		<th>FLOPs (G)</th>
+		<th>FPS</th>
+		<th>Pixel Accuracy</th>
+		<th>Class mIOU</th>
+		<th>Category mIOU</th>
+		<th>Download</th>
+		<!-- TABLE BODY -->
+		<tr>
+			<td align="center">1.14</td>
+			<td align="center">6.92</td>
+			<td align="center">197</td>
+			<td align="center">81.8</td>
+			<td align="center">58.0</td>
+			<td align="center">81.7</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">model</a>&nbsp;|&nbsp;eg6a</td>
+		</tr>
+	</tbody>
+</table>
+
+The left is input image, the middle is ground truth segmentation, and the right is model's predicted segmentation.
+
+![munster_000120_000019](result.png)
