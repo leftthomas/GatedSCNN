@@ -53,41 +53,22 @@ cityscapes/
     val/
 ```
 
-Set environment variable `CITYSCAPES_DATASET` firstly, for example:
-
-```
-export CITYSCAPES_DATASET=/home/data/cityscapes
-```
-
-and then
-run [createTrainIdLabelImgs.py](https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/preparation/createTrainIdLabelImgs.py)
-to creat `labelTrainIds.png`.
-
 ## Usage
 
 ### Train model
 
 ```
-python train.py --crop_h 512 --crop_w 1024
+python train.py --save_step 10 --epochs 175
 optional arguments:
 --data_path                   Data path for cityscapes dataset [default value is '/home/data/cityscapes']
---crop_h                      Crop height for training images [default value is 1024]
---crop_w                      Crop width for training images [default value is 2048]
---batch_size                  Number of data for each batch to train [default value is 12]
---save_step                   Number of steps to save predicted results [default value is 5]
---epochs                      Number of sweeps over the dataset to train [default value is 100]
+--backbone_type               Backbone type [default value is 'resnet50'](choices=['resnet50', 'resnet101'])
+--crop_h                      Crop height for training images [default value is 800]
+--crop_w                      Crop width for training images [default value is 800]
+--batch_size                  Number of data for each batch to train [default value is 16]
+--val_step                    Number of steps to val predicted results [default value is 5]
+--epochs                      Number of sweeps over the dataset to train [default value is 230]
+--save_path                   Save path for predicted results [default value is 'results']
 ```
-
-Set environment variable `CITYSCAPES_DATASET` and `CITYSCAPES_RESULTS` firstly, for example:
-
-```
-export CITYSCAPES_DATASET=/home/data/cityscapes
-export CITYSCAPES_RESULTS=/home/code/Fast-SCNN/results
-```
-
-and then
-run [evalPixelLevelSemanticLabeling.py](https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/evaluation/evalPixelLevelSemanticLabeling.py)
-to eval the predicted segmentation.
 
 ### Eval model
 
@@ -106,8 +87,7 @@ implementation and official implementation:
 
 1. The scales of `Multi-Scale Training` are `(0.5, 1.0, 2.0)`;
 2. No `dual task loss` used;
-3. `Adam` optimizer with learning rate `1e-3` is used to train this model;
-4. No `Polynomial Learning Scheduler` used.
+3. `Adam` optimizer with learning rate `1e-3` is used to train this model.
 
 <table>
 	<tbody>

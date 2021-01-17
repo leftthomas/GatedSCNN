@@ -1,18 +1,21 @@
 import argparse
+import glob
+import math
 import os
 import time
 
 import pandas as pd
 import torch
-import torch.optim as optim
 from cityscapesscripts.helpers.labels import trainId2label
 from thop import profile, clever_format
 from torch import nn
+from torch.optim import SGD
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
 
-from dataset import Cityscapes, palette
+from dataset import palette, Cityscapes
 from model import GatedSCNN
 
 
@@ -43,7 +46,7 @@ def train_val(net, data_loader, train_optimizer):
             total_loss += loss.item() * data.size(0)
             total_correct += torch.sum(prediction == target).item() / target.numel() * data.size(0)
 
-            if not is_train and epoch % save_step == 0:
+            if not is_train and epoch % val_step == 0:
                 # revert train id to regular id
                 for key in trainId2label.keys():
                     prediction[prediction == key] = trainId2label[key].id
@@ -52,6 +55,8 @@ def train_val(net, data_loader, train_optimizer):
                     pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
                     pred_img.putpalette(palette)
                     pred_img.save('results/{}'.format(pred_name.replace('leftImg8bit', 'color')))
+                # eval predicted results
+                os.system('csEvalPixelLevelSemanticLabeling')
 
             data_bar.set_description('{} Epoch: [{}/{}] Loss: {:.4f} mPA: {:.2f}% FPS: {:.0f}'
                                      .format('Train' if is_train else 'Val', epoch, epochs, total_loss / total_num,
@@ -64,26 +69,36 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Gated-SCNN')
     parser.add_argument('--data_path', default='/home/data/cityscapes', type=str,
                         help='Data path for cityscapes dataset')
+    parser.add_argument('--backbone_type', default='resnet50', type=str, choices=['resnet50', 'resnet101'],
+                        help='Backbone type')
     parser.add_argument('--crop_h', default=800, type=int, help='Crop height for training images')
     parser.add_argument('--crop_w', default=800, type=int, help='Crop width for training images')
     parser.add_argument('--batch_size', default=16, type=int, help='Number of data for each batch to train')
-    parser.add_argument('--save_step', default=5, type=int, help='Number of steps to save predicted results')
+    parser.add_argument('--val_step', default=5, type=int, help='Number of steps to val predicted results')
     parser.add_argument('--epochs', default=230, type=int, help='Number of sweeps over the dataset to train')
+    parser.add_argument('--save_path', default='results', type=str, help='Save path for predicted results')
 
     # args parse
     args = parser.parse_args()
-    data_path, crop_h, crop_w = args.data_path, args.crop_h, args.crop_w
-    batch_size, save_step, epochs = args.batch_size, args.save_step, args.epochs
+    data_path, backbone_type, crop_h, crop_w = args.data_path, args.backbone_type, args.crop_h, args.crop_w
+    batch_size, val_step, epochs, save_path = args.batch_size, args.val_step, args.epochs, args.save_path
     if not os.path.exists('results'):
         os.mkdir('results')
+    # config the environment variable
+    os.environ['CITYSCAPES_DATASET'] = data_path
+    os.environ['CITYSCAPES_RESULTS'] = save_path
+    search_path = os.path.join(os.getenv('CITYSCAPES_DATASET'), 'gtFine', '*', '*', '*labelTrainIds.png')
+    if not glob.glob(search_path):
+        os.system('csCreateTrainIdLabelImgs')
 
     # dataset, model setup and optimizer config
     train_data = Cityscapes(root=data_path, split='train', crop_size=(crop_h, crop_w))
     val_data = Cityscapes(root=data_path, split='val')
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False, num_workers=4)
-    model = GatedSCNN(in_channels=3, num_classes=19).cuda()
-    optimizer = optim.Adam(model.parameters(), lr=1e-2)
+    model = GatedSCNN(backbone_type=backbone_type, num_classes=19).cuda()
+    optimizer = SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
+    scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
 
     # model profile and loss definition
     flops, params = profile(model, inputs=(torch.randn(1, 3, crop_h, crop_w).cuda(),))

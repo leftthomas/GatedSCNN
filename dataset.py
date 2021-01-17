@@ -1,5 +1,5 @@
+import glob
 import os
-import os.path as osp
 import random
 
 import cv2
@@ -8,7 +8,7 @@ from cityscapesscripts.helpers.labels import trainId2label
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-city_mean, city_std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+city_mean, city_std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(city_mean, city_std)])
 
 palette = []
@@ -21,45 +21,43 @@ class Cityscapes(Dataset):
     """
        Cityscapes dataset is employed to load train or val set
        Args:
-        root: the Cityscapes dataset path,
-         cityscapes
-          ├── gtFine
-          ├── leftImg8bit
-        split: train, val
-        crop_size: (512, 1024), only works for 'train' split
+        root: the Cityscapes dataset path
+        split: train, val, test
+        crop_size: None, only works for 'train' split
         mean: rgb_mean (0.485, 0.456, 0.406)
         std: rgb_mean (0.229, 0.224, 0.225)
         ignore_label: 255
     """
 
-    def __init__(self, root, split='train', crop_size=(512, 1024), mean=city_mean, std=city_std, ignore_label=255):
+    def __init__(self, root, split='train', crop_size=None, mean=city_mean, std=city_std, ignore_label=255):
 
         self.split = split
-        self.crop_h, self.crop_w = crop_size
-        self.mean = mean
-        self.std = std
+        if split == 'train':
+            assert crop_size is not None
+            self.crop_h, self.crop_w = crop_size
+        self.mean, self.std = mean, std
         self.ignore_label = ignore_label
-        self.files = []
 
-        for root_dir, dirs, files in os.walk(osp.join(root, 'leftImg8bit', split)):
-            for file in files:
-                img_file = osp.join(root_dir, file)
-                label_file = osp.join(root_dir.replace('leftImg8bit', 'gtFine'),
-                                      file.replace('leftImg8bit', 'gtFine_labelTrainIds'))
-                self.files.append({'img': img_file, 'label': label_file, 'name': file})
+        search_images = os.path.join(root, 'leftImg8bit', split, '*', '*leftImg8bit.png')
+        search_labels = os.path.join(root, 'gtFine', split, '*', '*labelTrainIds.png')
+        self.images = glob.glob(search_images)
+        self.labels = glob.glob(search_labels)
+        self.images.sort()
+        self.labels.sort()
 
     def __len__(self):
-        return len(self.files)
+        return len(self.images)
 
     def __getitem__(self, index):
-        datafiles = self.files[index]
-        image = cv2.imread(datafiles['img'], cv2.IMREAD_COLOR)
-        label = cv2.imread(datafiles['label'], cv2.IMREAD_GRAYSCALE)
-        name = datafiles['name']
+        image_path = self.images[index]
+        label_path = self.labels[index]
+        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+        name = image_path.split('/')[-1]
 
         # random resize, multiple scale training
         if self.split == 'train':
-            f_scale = random.choice([0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0])
+            f_scale = random.choice([0.5, 1.0, 2.0])
             image = cv2.resize(image, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_LINEAR)
             label = cv2.resize(label, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_NEAREST)
 
