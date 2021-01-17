@@ -14,6 +14,12 @@ paper [Gated-SCNN: Gated Shape CNNs for Semantic Segmentation](https://arxiv.org
 conda install pytorch torchvision cudatoolkit=11.0 -c pytorch
 ```
 
+- timm
+
+```
+pip install timm
+```
+
 - thop
 
 ```
@@ -29,7 +35,7 @@ pip install opencv-python
 - cityscapesScripts
 
 ```
-pip install git+https://github.com/mcordts/cityscapesScripts.git
+pip install cityscapesscripts
 ```
 
 ## Expected dataset structure for Cityscapes:
@@ -39,8 +45,7 @@ cityscapes/
   gtFine/
     train/
       aachen/
-        color.png, instanceIds.png, labelIds.png, polygons.json,
-        labelTrainIds.png
+        color.png, instanceIds.png, labelIds.png, polygons.json
       ...
     val/
   leftImg8bit/
@@ -99,7 +104,7 @@ optional arguments:
 The experiment is conducted on one NVIDIA Tesla V100 (32G) GPU, and there are some difference between this
 implementation and official implementation:
 
-1. The scales of `Multi-Scale Training` are `(0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)`;
+1. The scales of `Multi-Scale Training` are `(0.5, 1.0, 2.0)`;
 2. No `dual task loss` used;
 3. `Adam` optimizer with learning rate `1e-3` is used to train this model;
 4. No `Polynomial Learning Scheduler` used.

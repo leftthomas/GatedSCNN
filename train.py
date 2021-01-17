@@ -13,7 +13,7 @@ from torchvision.transforms import ToPILImage
 from tqdm import tqdm
 
 from dataset import Cityscapes, palette
-from model import FastSCNN
+from model import GatedSCNN
 
 
 # train or val for one epoch
@@ -61,14 +61,14 @@ def train_val(net, data_loader, train_optimizer):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train Fast-SCNN')
+    parser = argparse.ArgumentParser(description='Train Gated-SCNN')
     parser.add_argument('--data_path', default='/home/data/cityscapes', type=str,
                         help='Data path for cityscapes dataset')
-    parser.add_argument('--crop_h', default=1024, type=int, help='Crop height for training images')
-    parser.add_argument('--crop_w', default=2048, type=int, help='Crop width for training images')
-    parser.add_argument('--batch_size', default=12, type=int, help='Number of data for each batch to train')
+    parser.add_argument('--crop_h', default=800, type=int, help='Crop height for training images')
+    parser.add_argument('--crop_w', default=800, type=int, help='Crop width for training images')
+    parser.add_argument('--batch_size', default=16, type=int, help='Number of data for each batch to train')
     parser.add_argument('--save_step', default=5, type=int, help='Number of steps to save predicted results')
-    parser.add_argument('--epochs', default=100, type=int, help='Number of sweeps over the dataset to train')
+    parser.add_argument('--epochs', default=230, type=int, help='Number of sweeps over the dataset to train')
 
     # args parse
     args = parser.parse_args()
@@ -82,8 +82,8 @@ if __name__ == '__main__':
     val_data = Cityscapes(root=data_path, split='val')
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False, num_workers=4)
-    model = FastSCNN(in_channels=3, num_classes=19).cuda()
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    model = GatedSCNN(in_channels=3, num_classes=19).cuda()
+    optimizer = optim.Adam(model.parameters(), lr=1e-2)
 
     # model profile and loss definition
     flops, params = profile(model, inputs=(torch.randn(1, 3, crop_h, crop_w).cuda(),))

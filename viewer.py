@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision.transforms import ToPILImage
 
 from dataset import transform, palette
-from model import FastSCNN
+from model import GatedSCNN
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict segmentation result from a given image')
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     image = transform(image).unsqueeze(dim=0).cuda()
 
     # model load
-    model = FastSCNN(in_channels=3, num_classes=19)
+    model = GatedSCNN(in_channels=3, num_classes=19)
     model.load_state_dict(torch.load(model_weight, map_location=torch.device('cpu')))
     model = model.cuda()
     model.eval()
