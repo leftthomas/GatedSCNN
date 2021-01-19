@@ -59,9 +59,8 @@ optional arguments:
 --crop_h                      Crop height for training images [default value is 800]
 --crop_w                      Crop width for training images [default value is 800]
 --batch_size                  Number of data for each batch to train [default value is 16]
---val_step                    Number of steps to val predicted results [default value is 5]
 --epochs                      Number of sweeps over the dataset to train [default value is 230]
---save_path                   Save path for predicted results [default value is 'results']
+--save_path                   Save path for results [default value is 'results']
 ```
 
 ### Eval model
