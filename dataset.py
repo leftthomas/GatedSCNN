@@ -40,10 +40,13 @@ class Cityscapes(Dataset):
 
         search_images = os.path.join(root, 'leftImg8bit', split, '*', '*leftImg8bit.png')
         search_labels = os.path.join(root, 'gtFine', split, '*', '*labelTrainIds.png')
+        search_grads = os.path.join(root, 'gtFine', split, '*', '*grad.png')
         self.images = glob.glob(search_images)
         self.labels = glob.glob(search_labels)
+        self.grads = glob.glob(search_grads)
         self.images.sort()
         self.labels.sort()
+        self.grads.sort()
 
     def __len__(self):
         return len(self.images)
@@ -51,8 +54,10 @@ class Cityscapes(Dataset):
     def __getitem__(self, index):
         image_path = self.images[index]
         label_path = self.labels[index]
+        grad_path = self.grads[index]
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+        grad = cv2.imread(grad_path, cv2.IMREAD_GRAYSCALE)
         name = image_path.split('/')[-1]
 
         # random resize, multiple scale training
