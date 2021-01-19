@@ -56,7 +56,7 @@ def for_loop(net, data_loader, train_optimizer):
                     prediction[prediction == key] = trainId2label[key].id
                 # save pred images
                 for pred_tensor, pred_name in zip(prediction, name):
-                    pred_img = ToPILImage()(pred_tensor.byte().cpu())
+                    pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
                     pred_img.putpalette(palette)
                     pred_name = pred_name.replace('leftImg8bit', 'color')
                     path = '{}/{}'.format(save_path, pred_name)
