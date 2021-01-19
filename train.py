@@ -31,11 +31,11 @@ def for_loop(net, data_loader, train_optimizer):
             data, target, grad = data.cuda(), target.cuda(), grad.cuda()
             torch.cuda.synchronize()
             start_time = time.time()
-            out = net(data, grad)
-            prediction = torch.argmax(out, dim=1)
+            seg, edge = net(data, grad)
+            prediction = torch.argmax(seg, dim=1)
             torch.cuda.synchronize()
             end_time = time.time()
-            loss = loss_criterion(out, target)
+            loss = loss_criterion(seg, edge, target)
 
             if is_train:
                 train_optimizer.zero_grad()
@@ -56,7 +56,7 @@ def for_loop(net, data_loader, train_optimizer):
                 for pred_tensor, pred_name in zip(prediction, name):
                     pred_img = ToPILImage()(pred_tensor.byte().cpu())
                     pred_img.putpalette(palette)
-                    pred_name = pred_name.split('/')[-1].replace('leftImg8bit', 'color')
+                    pred_name = pred_name.replace('leftImg8bit', 'color')
                     path = '{}/{}'.format(save_path, pred_name)
                     pred_img.save(path)
             data_bar.set_description('{} Epoch: [{}/{}] Loss: {:.4f} mPA: {:.2f}% mIOU: {:.2f}% FPS: {:.0f}'

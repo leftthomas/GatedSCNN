@@ -65,14 +65,17 @@ class Cityscapes(Dataset):
             f_scale = random.choice([0.5, 1.0, 2.0])
             image = cv2.resize(image, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_LINEAR)
             label = cv2.resize(label, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_NEAREST)
+            grad = cv2.resize(grad, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_NEAREST)
 
         image = np.asarray(image, np.float32)
+        grad = np.asarray(grad, np.float32)
         # change to RGB
         image = image[:, :, ::-1]
         # normalization
         image /= 255.0
         image -= self.mean
         image /= self.std
+        grad /= 255.0
 
         # random crop
         if self.split == 'train':
@@ -86,20 +89,21 @@ class Cityscapes(Dataset):
                 label_pad = cv2.copyMakeBorder(label, 0, pad_h, 0,
                                                pad_w, cv2.BORDER_CONSTANT,
                                                value=(self.ignore_label,))
+                grad_pad = cv2.copyMakeBorder(grad, 0, pad_h, 0,
+                                              pad_w, cv2.BORDER_CONSTANT,
+                                              value=(0,))
             else:
-                img_pad, label_pad = image, label
+                img_pad, label_pad, grad_pad = image, label, grad
 
             img_h, img_w = label_pad.shape
             h_off = random.randint(0, img_h - self.crop_h)
             w_off = random.randint(0, img_w - self.crop_w)
             image = img_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w]
             label = label_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w]
-        # generate grad shape
-        grad = cv2.Canny(image.astype(np.uint8), 10, 100)
+            grad = grad_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w]
         # HWC -> CHW
         image = image.transpose((2, 0, 1))
         label = np.asarray(label, np.long)
-        grad = np.asarray(grad, np.float32)
 
         # random horizontal flip
         if self.split == 'train':
@@ -108,4 +112,4 @@ class Cityscapes(Dataset):
             label = label[:, ::flip]
             grad = grad[:, ::flip]
 
-        return image.copy(), label.copy(), grad.copy(), name
+        return image, label, grad, name
