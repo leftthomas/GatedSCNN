@@ -47,6 +47,8 @@ def for_loop(net, data_loader, train_optimizer):
             total_loss += loss.item() * data.size(0)
             # compute PA
             total_pa += torch.sum(torch.eq(prediction, target)).item() / target.numel() * data.size(0)
+            # compute IOU TODO
+            total_iou += torch.sum(torch.eq(prediction, target)).item() / target.numel() * data.size(0)
 
             if data_loader.dataset.split == 'test':
                 # revert train id to regular id
@@ -123,6 +125,7 @@ if __name__ == '__main__':
     model = GatedSCNN(backbone_type=backbone_type, num_classes=19).cuda()
     optimizer = SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
+    # TODO
     loss_criterion = nn.CrossEntropyLoss(ignore_index=255)
 
     results = {'train_loss': [], 'val_loss': [], 'train_mPA': [], 'val_mPA': [], 'train_mIOU': [], 'val_mIOU': []}

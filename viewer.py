@@ -3,6 +3,7 @@ import os
 
 import torch
 from PIL import Image
+from cityscapesscripts.helpers.labels import trainId2label
 from torchvision.transforms import ToPILImage
 
 from dataset import transform, palette
@@ -10,9 +11,9 @@ from model import GatedSCNN
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict segmentation result from a given image')
-    parser.add_argument('--data_path', default='/home/data/cityscapes', type=str,
-                        help='Data path for cityscapes dataset')
-    parser.add_argument('--model_weight', type=str, default='1024_2048_model.pth', help='Pretrained model weight')
+    parser.add_argument('--data_path', default='data', type=str, help='Data path for cityscapes dataset')
+    parser.add_argument('--model_weight', type=str, default='resnet50_800_800_model.pth',
+                        help='Pretrained model weight')
     parser.add_argument('--input_pic', type=str, default='test/berlin/berlin_000000_000019_leftImg8bit.png',
                         help='Path to the input picture')
     # args parse
@@ -28,15 +29,17 @@ if __name__ == '__main__':
     image = transform(image).unsqueeze(dim=0).cuda()
 
     # model load
-    model = GatedSCNN(in_channels=3, num_classes=19)
+    model = GatedSCNN(model_weight.split('_')[0], num_classes=19)
     model.load_state_dict(torch.load(model_weight, map_location=torch.device('cpu')))
     model = model.cuda()
     model.eval()
 
     # predict and save image
     with torch.no_grad():
-        output = model(image)
+        output, _ = model(image)
         pred = torch.argmax(output, dim=1)
+        for key in trainId2label.keys():
+            pred[pred == key] = trainId2label[key].id
         pred_image = ToPILImage()(pred.byte().cpu())
         pred_image.putpalette(palette)
         if 'test' not in input_pic:
