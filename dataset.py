@@ -8,6 +8,7 @@ import torch
 from cityscapesscripts.helpers.labels import trainId2label
 from torch.utils.data import Dataset
 from torchvision import transforms
+from tqdm import tqdm
 
 city_mean, city_std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(city_mean, city_std)])
@@ -103,6 +104,35 @@ class Cityscapes(Dataset):
             grad = grad[:, ::flip]
 
         return image.copy(), label.copy(), np.expand_dims(grad, axis=0).copy(), name
+
+
+def creat_dataset(root):
+    search_path = os.path.join(root, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
+    if not glob.glob(search_path):
+        if not os.path.exists(root):
+            os.mkdir(root)
+        # download dataset
+        os.system('csDownload -d {} gtFine_trainvaltest.zip leftImg8bit_trainvaltest.zip'.format(root))
+        os.system("unzip {}/'*.zip' -d {}".format(root, root))
+    search_path = os.path.join(root, 'gtFine', '*', '*', '*labelTrainIds.png')
+    if not glob.glob(search_path):
+        # config the environment variable
+        os.environ['CITYSCAPES_DATASET'] = root
+        # generate pixel labels
+        os.system('csCreateTrainIdLabelImgs')
+    search_path = os.path.join(root, 'gtFine', '*', '*', '*grad.png')
+    if not glob.glob(search_path):
+        search_path = os.path.join(root, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
+        files = glob.glob(search_path)
+        files.sort()
+        # generate grad images
+        for f in tqdm(files, desc='generating grad images'):
+            # create the output filename
+            dst = f.replace('/leftImg8bit/', '/gtFine/')
+            dst = dst.replace('_leftImg8bit', '_gtFine_grad')
+            # do the conversion
+            grad_image = cv2.Canny(cv2.imread(f), 10, 100)
+            cv2.imwrite(dst, grad_image)
 
 
 def compute_metric(output, target):

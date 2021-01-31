@@ -1,22 +1,13 @@
 import argparse
-import glob
 import math
-import os
 import time
 
-import cv2
-import pandas as pd
 import torch
 from cityscapesscripts.helpers.labels import trainId2label
-from torch import nn
-from torch.optim import SGD
-from torch.optim.lr_scheduler import LambdaLR
-from torch.utils.data import DataLoader
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
 
-from dataset import palette, Cityscapes, compute_metric
-from model import GatedSCNN
+from dataset import palette, compute_metric, creat_dataset
 
 
 # train or val or test for one epoch
@@ -82,26 +73,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     data_path, backbone_type, crop_h, crop_w = args.data_path, args.backbone_type, args.crop_h, args.crop_w
     batch_size, epochs, save_path = args.batch_size, args.epochs, args.save_path
-    search_path = os.path.join(data_path, 'gtFine', '*', '*', '*labelTrainIds.png')
-    if not glob.glob(search_path):
-        # config the environment variable, generate pixel labels
-        os.environ['CITYSCAPES_DATASET'] = data_path
-        os.system('csCreateTrainIdLabelImgs')
-    # generate grad images
-    search_path = os.path.join(data_path, 'gtFine', '*', '*', '*grad.png')
-    if not glob.glob(search_path):
-        search_path = os.path.join(data_path, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
-        files = glob.glob(search_path)
-        files.sort()
-        for f in tqdm(files, desc='generating grad images'):
-            # create the output filename
-            dst = f.replace('/leftImg8bit/', '/gtFine/')
-            dst = dst.replace('_leftImg8bit', '_gtFine_grad')
-            # do the conversion
-            grad_image = cv2.Canny(cv2.imread(f), 10, 100)
-            cv2.imwrite(dst, grad_image)
 
     # dataset, model setup, optimizer config and loss definition
+    creat_dataset(data_path)
+    assert False
     train_data = Cityscapes(root=data_path, split='train', crop_size=(crop_h, crop_w))
     val_data = Cityscapes(root=data_path, split='val')
     test_data = Cityscapes(root=data_path, split='test')

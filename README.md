@@ -71,10 +71,12 @@ implementation and official implementation:
 		<!-- START TABLE -->
 		<!-- TABLE HEADER -->
 		<th>BackBone</th>
-		<th>Pixel Accuracy<sup>val</sup></th>
+		<th>PA<sup>val</sup></th>
+		<th>mPA<sup>val</sup></th>
 		<th>Class mIOU<sup>val</sup></th>
 		<th>Category mIOU<sup>val</sup></th>
-		<th>Pixel Accuracy<sup>test</sup></th>
+		<th>PA<sup>test</sup></th>
+		<th>mPA<sup>test</sup></th>
 		<th>Class mIOU<sup>test</sup></th>
 		<th>Category mIOU<sup>test</sup></th>
 		<th>FPS</th>
@@ -83,24 +85,28 @@ implementation and official implementation:
 		<tr>
 			<td align="center">ResNet50</td>
 			<td align="center">81.8</td>
-			<td align="center">58.0</td>
-			<td align="center">81.7</td>
 			<td align="center">81.8</td>
 			<td align="center">58.0</td>
 			<td align="center">81.7</td>
+			<td align="center">81.8</td>
+            <td align="center">81.8</td>
+			<td align="center">58.0</td>
+			<td align="center">81.7</td>
 			<td align="center">197</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">model</a>&nbsp;|&nbsp;eg6a</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">eg6a</a></td>
 		</tr>
 		<tr>
 			<td align="center">ResNet101</td>
 			<td align="center">81.8</td>
-			<td align="center">58.0</td>
-			<td align="center">81.7</td>
 			<td align="center">81.8</td>
 			<td align="center">58.0</td>
 			<td align="center">81.7</td>
+			<td align="center">81.8</td>
+            <td align="center">81.8</td>
+			<td align="center">58.0</td>
+			<td align="center">81.7</td>
 			<td align="center">197</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">model</a>&nbsp;|&nbsp;eg6a</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">eg6a</a></td>
 		</tr>
 	</tbody>
 </table>
