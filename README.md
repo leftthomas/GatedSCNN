@@ -32,21 +32,6 @@ pip install opencv-python
 pip install cityscapesscripts
 ```
 
-## Expected dataset structure for Cityscapes:
-
-```
-cityscapes/
-  gtFine/
-    train/
-      aachen/
-        color.png, instanceIds.png, labelIds.png, polygons.json
-      ...
-    val/
-  leftImg8bit/
-    train/
-    val/
-```
-
 ## Usage
 
 ### Train model
@@ -69,18 +54,17 @@ optional arguments:
 python viewer.py --model_weight resnet101_800_800_model.pth
 optional arguments:
 --data_path                   Data path for cityscapes dataset [default value is 'data']
---model_weight                Pretrained model weight [default value is 'resnet50_800_800_model.pth']
+--model_weight                Pretrained model weight [default value is 'results/resnet50_800_800_model.pth']
 --input_pic                   Path to the input picture [default value is 'test/berlin/berlin_000000_000019_leftImg8bit.png']
 ```
 
 ## Results
 
-The experiment is conducted on one NVIDIA GeForce TITAN X (12G) GPU, and there are some difference between this
+The experiment is conducted on one NVIDIA TESLA V100 (32G) GPU, and there are some difference between this
 implementation and official implementation:
 
-1. `Multi-Scale Training (0.5, 1.0, 2.0)` is used;
-2. `res2/res3/res4` are used in `GCLs`;
-3. No `dual task loss` used.
+1. `res2/res3/res4` are used in `GCLs`;
+2. No `dual task loss` used.
 
 <table>
 	<tbody>
@@ -124,3 +108,4 @@ implementation and official implementation:
 The left is the input image, the middle is ground truth segmentation, and the right is model's predicted segmentation.
 
 ![munster_000120_000019](result.png)
+

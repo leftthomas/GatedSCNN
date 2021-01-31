@@ -4,6 +4,7 @@ import random
 
 import cv2
 import numpy as np
+import torch
 from cityscapesscripts.helpers.labels import trainId2label
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -18,17 +19,6 @@ for key in sorted(trainId2label.keys()):
 
 
 class Cityscapes(Dataset):
-    """
-       Cityscapes dataset is employed to load train or val set
-       Args:
-        root: the Cityscapes dataset path
-        split: train, val, test
-        crop_size: None, only works for 'train' split
-        mean: rgb_mean (0.485, 0.456, 0.406)
-        std: rgb_mean (0.229, 0.224, 0.225)
-        ignore_label: 255
-    """
-
     def __init__(self, root, split='train', crop_size=None, mean=city_mean, std=city_std, ignore_label=255):
 
         self.split = split
@@ -112,4 +102,9 @@ class Cityscapes(Dataset):
             label = label[:, ::flip]
             grad = grad[:, ::flip]
 
-        return image, label, grad, name
+        return image.copy(), label.copy(), np.expand_dims(grad, axis=0).copy(), name
+
+
+def compute_metric(output, target):
+    pa = torch.sum(torch.eq(output, target)) / target.numel()
+    return pa

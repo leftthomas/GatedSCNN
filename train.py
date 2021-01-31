@@ -2,7 +2,6 @@ import argparse
 import glob
 import math
 import os
-import sys
 import time
 
 import cv2
@@ -16,7 +15,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
 
-from dataset import palette, Cityscapes
+from dataset import palette, Cityscapes, compute_metric
 from model import GatedSCNN
 
 
@@ -45,10 +44,10 @@ def for_loop(net, data_loader, train_optimizer):
             total_num += data.size(0)
             total_time += end_time - start_time
             total_loss += loss.item() * data.size(0)
-            # compute PA
-            total_pa += torch.sum(torch.eq(prediction, target)).item() / target.numel() * data.size(0)
-            # compute IOU TODO
-            total_iou += torch.sum(torch.eq(prediction, target)).item() / target.numel() * data.size(0)
+            # compute PA/IOU TODO
+            pa, iou = compute_metric(prediction, target)
+            total_pa += pa.item() * data.size(0)
+            total_iou += iou.item() * data.size(0)
 
             if data_loader.dataset.split == 'test':
                 # revert train id to regular id
@@ -94,26 +93,13 @@ if __name__ == '__main__':
         search_path = os.path.join(data_path, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
         files = glob.glob(search_path)
         files.sort()
-        # a bit verbose
-        print('Processing {} images to generate grad images'.format(len(files)))
-        # iterate through files
-        progress = 0
-        print('Progress: {:>3} %'.format(progress * 100 / len(files)), end=' ')
-        for f in files:
+        for f in tqdm(files, desc='generating grad images'):
             # create the output filename
             dst = f.replace('/leftImg8bit/', '/gtFine/')
             dst = dst.replace('_leftImg8bit', '_gtFine_grad')
             # do the conversion
-            try:
-                grad_image = cv2.Canny(cv2.imread(f), 10, 100)
-                cv2.imwrite(dst, grad_image)
-            except:
-                print("Failed to convert: {}".format(f))
-                raise
-            # status
-            progress += 1
-            print("\rProgress: {:>3} %".format(progress * 100 / len(files)), end=' ')
-            sys.stdout.flush()
+            grad_image = cv2.Canny(cv2.imread(f), 10, 100)
+            cv2.imwrite(dst, grad_image)
 
     # dataset, model setup, optimizer config and loss definition
     train_data = Cityscapes(root=data_path, split='train', crop_size=(crop_h, crop_w))
