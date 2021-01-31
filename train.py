@@ -7,7 +7,8 @@ from cityscapesscripts.helpers.labels import trainId2label
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
 
-from dataset import palette, compute_metric, creat_dataset
+from dataset import creat_dataset
+from utils import palette, compute_metric
 
 
 # train or val or test for one epoch

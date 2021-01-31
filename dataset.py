@@ -4,19 +4,10 @@ import random
 
 import cv2
 import numpy as np
-import torch
-from cityscapesscripts.helpers.labels import trainId2label
 from torch.utils.data import Dataset
-from torchvision import transforms
 from tqdm import tqdm
 
-city_mean, city_std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(city_mean, city_std)])
-
-palette = []
-for key in sorted(trainId2label.keys()):
-    if key != -1 and key != 255:
-        palette += list(trainId2label[key].color)
+from utils import city_mean, city_std
 
 
 class Cityscapes(Dataset):
@@ -113,7 +104,7 @@ def creat_dataset(root):
             os.mkdir(root)
         # download dataset
         os.system('csDownload -d {} gtFine_trainvaltest.zip leftImg8bit_trainvaltest.zip'.format(root))
-        os.system("unzip {}/'*.zip' -d {}".format(root, root))
+        os.system("unzip -o {}/'*.zip' -d {}".format(root, root))
     search_path = os.path.join(root, 'gtFine', '*', '*', '*labelTrainIds.png')
     if not glob.glob(search_path):
         # config the environment variable
@@ -133,8 +124,3 @@ def creat_dataset(root):
             # do the conversion
             grad_image = cv2.Canny(cv2.imread(f), 10, 100)
             cv2.imwrite(dst, grad_image)
-
-
-def compute_metric(output, target):
-    pa = torch.sum(torch.eq(output, target)) / target.numel()
-    return pa
