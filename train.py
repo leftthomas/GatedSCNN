@@ -1,14 +1,21 @@
 import argparse
 import math
+import os
 import time
 
+import pandas as pd
 import torch
 from cityscapesscripts.helpers.labels import trainId2label
+from torch import nn
+from torch.optim import SGD
+from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import DataLoader
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
 
-from dataset import creat_dataset
-from utils import palette, compute_metric
+from dataset import creat_dataset, Cityscapes
+from model import GatedSCNN
+from utils import palette, compute_metrics
 
 
 # train or val or test for one epoch
@@ -16,7 +23,7 @@ def for_loop(net, data_loader, train_optimizer):
     is_train = train_optimizer is not None
     net.train() if is_train else net.eval()
 
-    total_loss, total_pa, total_iou, total_time, total_num, data_bar = 0.0, 0.0, 0.0, 0.0, 0, tqdm(data_loader)
+    total_loss, total_time, total_num, data_bar = 0.0, 0.0, 0, tqdm(data_loader)
     with (torch.enable_grad() if is_train else torch.no_grad()):
         for data, target, grad, name in data_bar:
             data, target, grad = data.cuda(), target.cuda(), grad.cuda()
@@ -36,27 +43,30 @@ def for_loop(net, data_loader, train_optimizer):
             total_num += data.size(0)
             total_time += end_time - start_time
             total_loss += loss.item() * data.size(0)
-            # compute PA/IOU TODO
-            pa, iou = compute_metric(prediction, target)
-            total_pa += pa.item() * data.size(0)
-            total_iou += iou.item() * data.size(0)
 
-            if data_loader.dataset.split == 'test':
-                # revert train id to regular id
-                for key in trainId2label.keys():
-                    prediction[prediction == key] = trainId2label[key].id
-                # save pred images
-                for pred_tensor, pred_name in zip(prediction, name):
-                    pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
-                    pred_img.putpalette(palette)
-                    pred_name = pred_name.replace('leftImg8bit', 'color')
-                    path = '{}/{}'.format(save_path, pred_name)
-                    pred_img.save(path)
-            data_bar.set_description('{} Epoch: [{}/{}] Loss: {:.4f} mPA: {:.2f}% mIOU: {:.2f}% FPS: {:.0f}'
+            # revert train id to regular id
+            for key in trainId2label.keys():
+                prediction[prediction == key] = trainId2label[key].id
+            # save pred images
+            save_root = '{}/{}'.format(save_path, data_loader.dataset.split)
+            if not os.path.exists(save_root):
+                os.mkdir(save_root)
+            for pred_tensor, pred_name in zip(prediction, name):
+                pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
+                pred_img.putpalette(palette)
+                pred_name = pred_name.replace('leftImg8bit', 'color')
+                path = '{}/{}'.format(save_root, pred_name)
+                pred_img.save(path)
+            data_bar.set_description('{} Epoch: [{}/{}] Loss: {:.4f} FPS: {:.0f}'
                                      .format(data_loader.dataset.split.capitalize(), epoch, epochs,
-                                             total_loss / total_num, total_pa / total_num * 100,
-                                             total_iou / total_num * 100, total_num / total_time))
-    return total_loss / total_num, total_pa / total_num * 100, total_iou / total_num * 100
+                                             total_loss / total_num, total_num / total_time))
+        # compute metrics
+        target_root = os.path.join(data_path, 'gtFine', data_loader.dataset.split, '*', '*labelIds.png')
+        pa, mpa, class_iou, category_iou = compute_metrics(save_root, target_root)
+        print('{} Epoch: [{}/{}] PA: {:.2f}% mPA: {:.2f}% Class_mIOU: {:.2f}% Category_mIOU: {:.2f}%'
+              .format(data_loader.dataset.split.capitalize(), epoch, epochs,
+                      pa * 100, mpa * 100, class_iou * 100, category_iou * 100))
+    return total_loss / total_num, pa * 100, mpa * 100, class_iou * 100, category_iou * 100
 
 
 if __name__ == '__main__':
@@ -77,7 +87,6 @@ if __name__ == '__main__':
 
     # dataset, model setup, optimizer config and loss definition
     creat_dataset(data_path)
-    assert False
     train_data = Cityscapes(root=data_path, split='train', crop_size=(crop_h, crop_w))
     val_data = Cityscapes(root=data_path, split='val')
     test_data = Cityscapes(root=data_path, split='test')
@@ -90,24 +99,32 @@ if __name__ == '__main__':
     # TODO
     loss_criterion = nn.CrossEntropyLoss(ignore_index=255)
 
-    results = {'train_loss': [], 'val_loss': [], 'train_mPA': [], 'val_mPA': [], 'train_mIOU': [], 'val_mIOU': []}
+    results = {'train_loss': [], 'val_loss': [], 'train_PA': [], 'val_PA': [], 'train_mPA': [], 'val_mPA': [],
+               'train_class_mIOU': [], 'val_class_mIOU': [], 'train_category_mIOU': [], 'val_category_mIOU': []}
     best_mIOU = 0.0
     # train/val/test loop
     for epoch in range(1, epochs + 1):
-        train_loss, train_mPA, train_mIOU = for_loop(model, train_loader, optimizer)
+        train_loss, train_PA, train_mPA, train_class_mIOU, train_category_mIOU = for_loop(model, train_loader,
+                                                                                          optimizer)
         results['train_loss'].append(train_loss)
+        results['train_PA'].append(train_PA)
         results['train_mPA'].append(train_mPA)
-        results['train_mIOU'].append(train_mIOU)
-        val_loss, val_mPA, val_mIOU = for_loop(model, val_loader, None)
+        results['train_class_mIOU'].append(train_class_mIOU)
+        results['train_category_mIOU'].append(train_category_mIOU)
+        val_loss, val_PA, val_mPA, val_class_mIOU, val_category_mIOU = for_loop(model, val_loader, None)
         results['val_loss'].append(val_loss)
+        results['val_PA'].append(val_PA)
         results['val_mPA'].append(val_mPA)
-        results['val_mIOU'].append(val_mIOU)
+        results['val_class_mIOU'].append(val_class_mIOU)
+        results['val_category_mIOU'].append(val_category_mIOU)
         # save statistics
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('{}/{}_{}_{}_statistics.csv'.format(save_path, backbone_type, crop_h, crop_w),
                           index_label='epoch')
-        if val_mIOU > best_mIOU:
-            best_mIOU = val_mIOU
-            # use best model to update the test results
+        if val_class_mIOU > best_mIOU:
+            best_mIOU = val_class_mIOU
+            # use best model to obtain the test results
             for_loop(model, test_loader, None)
             torch.save(model.state_dict(), '{}/{}_{}_{}_model.pth'.format(save_path, backbone_type, crop_h, crop_w))
