@@ -3,10 +3,12 @@ import math
 import os
 import time
 
+import numpy as np
 import pandas as pd
 import torch
 from cityscapesscripts.helpers.labels import trainId2label
 from torch import nn
+from torch.backends import cudnn
 from torch.optim import SGD
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
@@ -16,6 +18,12 @@ from tqdm import tqdm
 from dataset import creat_dataset, Cityscapes
 from model import GatedSCNN
 from utils import get_palette, compute_metrics
+
+# for reproducibility
+np.random.seed(1)
+torch.manual_seed(1)
+cudnn.deterministic = True
+cudnn.benchmark = False
 
 
 # train or val or test for one epoch

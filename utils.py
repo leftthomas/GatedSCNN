@@ -16,7 +16,7 @@ def get_palette():
 
 
 def compute_metrics(preds, targets, ignore_label=255, num_classes=19, num_category=7):
-    correct_pixel, total_pixel = 0, 0
+    correct_pixel, total_pixel = torch.zeros(1, device=preds.device), torch.zeros(1, device=preds.device)
     class_tt = torch.zeros(num_classes, device=preds.device)
     class_tf, class_ft = torch.zeros(num_classes, device=preds.device), torch.zeros(num_classes, device=preds.device)
     category_tt = torch.zeros(num_category, device=preds.device)
@@ -50,4 +50,4 @@ def compute_metrics(preds, targets, ignore_label=255, num_classes=19, num_catego
     mpa = (class_tt / class_tf).mean()
     class_iou = (class_tt / (class_tf + class_ft - class_tt)).mean()
     category_iou = (category_tt / (category_tf + category_ft - category_tt)).mean()
-    return pa, mpa, class_iou, category_iou
+    return pa.item(), mpa.item(), class_iou.item(), category_iou.item()
