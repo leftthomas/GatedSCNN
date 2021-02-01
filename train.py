@@ -31,11 +31,11 @@ def for_loop(net, data_loader, train_optimizer):
     is_train = train_optimizer is not None
     net.train() if is_train else net.eval()
 
-    total_loss, total_time, total_num, preds, targets, data_bar = 0.0, 0.0, 0, [], [], tqdm(data_loader,
-                                                                                            dynamic_ncols=True)
+    total_loss, total_time, total_num, preds, targets = 0.0, 0.0, 0, [], []
+    data_bar = tqdm(data_loader, dynamic_ncols=True)
     with (torch.enable_grad() if is_train else torch.no_grad()):
-        for data, target, grad, name in data_bar:
-            data, target, grad = data.cuda(), target.cuda(), grad.cuda()
+        for data, target, grad, boundary, name in data_bar:
+            data, target, grad, boundary = data.cuda(), target.cuda(), grad.cuda(), boundary.cuda()
             torch.cuda.synchronize()
             start_time = time.time()
             seg, edge = net(data, grad)
@@ -107,9 +107,9 @@ if __name__ == '__main__':
     train_data = Cityscapes(root=data_path, split='train', crop_size=(crop_h, crop_w))
     val_data = Cityscapes(root=data_path, split='val')
     test_data = Cityscapes(root=data_path, split='test')
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False, num_workers=4)
-    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
+    val_loader = DataLoader(val_data, batch_size=1, shuffle=False, num_workers=4)
+    test_loader = DataLoader(test_data, batch_size=1, shuffle=False, num_workers=4)
     model = GatedSCNN(backbone_type=backbone_type, num_classes=19).cuda()
     optimizer = SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
