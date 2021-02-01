@@ -9,7 +9,7 @@ from cityscapesscripts.helpers.labels import trainId2label
 from torchvision.transforms import ToPILImage
 
 from model import GatedSCNN
-from utils import transform, palette
+from utils import transform, get_palette
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict segmentation result from a given image')
@@ -42,10 +42,10 @@ if __name__ == '__main__':
     with torch.no_grad():
         output, _ = model(image, grad)
         pred = torch.argmax(output, dim=1)
-        for key in trainId2label.keys():
+        for key in sorted(trainId2label.keys(), reverse=True):
             pred[pred == key] = trainId2label[key].id
         pred_image = ToPILImage()(pred.byte().cpu())
-        pred_image.putpalette(palette)
+        pred_image.putpalette(get_palette())
         if 'test' not in input_pic:
             gt_image = Image.open('{}/gtFine/{}'.format(data_path, input_pic.replace('leftImg8bit', 'gtFine_color')))
             images.append(gt_image)

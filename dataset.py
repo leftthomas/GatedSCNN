@@ -101,7 +101,7 @@ def creat_dataset(root):
     search_path = os.path.join(root, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
     if not glob.glob(search_path):
         if not os.path.exists(root):
-            os.mkdir(root)
+            os.makedirs(root)
         # download dataset
         os.system('csDownload -d {} gtFine_trainvaltest.zip leftImg8bit_trainvaltest.zip'.format(root))
         os.system("unzip -o {}/'*.zip' -d {}".format(root, root))
@@ -117,7 +117,7 @@ def creat_dataset(root):
         files = glob.glob(search_path)
         files.sort()
         # generate grad images
-        for f in tqdm(files, desc='generating grad images'):
+        for f in tqdm(files, desc='generating grad images', dynamic_ncols=True):
             # create the output filename
             dst = f.replace('/leftImg8bit/', '/gtFine/')
             dst = dst.replace('_leftImg8bit', '_gtFine_grad')

@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from dataset import creat_dataset, Cityscapes
 from model import GatedSCNN
-from utils import palette, compute_metrics
+from utils import get_palette, compute_metrics
 
 
 # train or val or test for one epoch
@@ -23,17 +23,22 @@ def for_loop(net, data_loader, train_optimizer):
     is_train = train_optimizer is not None
     net.train() if is_train else net.eval()
 
-    total_loss, total_time, total_num, data_bar = 0.0, 0.0, 0, tqdm(data_loader)
+    total_loss, total_time, total_num, preds, targets, data_bar = 0.0, 0.0, 0, [], [], tqdm(data_loader,
+                                                                                            dynamic_ncols=True)
     with (torch.enable_grad() if is_train else torch.no_grad()):
         for data, target, grad, name in data_bar:
             data, target, grad = data.cuda(), target.cuda(), grad.cuda()
             torch.cuda.synchronize()
             start_time = time.time()
             seg, edge = net(data, grad)
-            prediction = torch.argmax(seg, dim=1)
+            prediction = torch.argmax(seg.detach(), dim=1)
             torch.cuda.synchronize()
             end_time = time.time()
-            loss = loss_criterion(seg, edge, target)
+            semantic_loss = semantic_criterion(seg, target)
+            # edge_loss = edge_criterion(edge, target)
+            # task_loss = task_criterion(seg, edge, target)
+            # loss = semantic_loss + 20 * edge_loss + task_loss
+            loss = semantic_loss
 
             if is_train:
                 train_optimizer.zero_grad()
@@ -43,26 +48,30 @@ def for_loop(net, data_loader, train_optimizer):
             total_num += data.size(0)
             total_time += end_time - start_time
             total_loss += loss.item() * data.size(0)
+            preds.append(prediction)
+            targets.append(target)
 
-            # revert train id to regular id
-            for key in trainId2label.keys():
-                prediction[prediction == key] = trainId2label[key].id
-            # save pred images
-            save_root = '{}/{}'.format(save_path, data_loader.dataset.split)
-            if not os.path.exists(save_root):
-                os.mkdir(save_root)
-            for pred_tensor, pred_name in zip(prediction, name):
-                pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
-                pred_img.putpalette(palette)
-                pred_name = pred_name.replace('leftImg8bit', 'color')
-                path = '{}/{}'.format(save_root, pred_name)
-                pred_img.save(path)
+            if not is_train:
+                # revert train id to regular id
+                for key in sorted(trainId2label.keys(), reverse=True):
+                    prediction[prediction == key] = trainId2label[key].id
+                # save pred images
+                save_root = '{}/{}'.format(save_path, data_loader.dataset.split)
+                if not os.path.exists(save_root):
+                    os.makedirs(save_root)
+                for pred_tensor, pred_name in zip(prediction, name):
+                    pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
+                    pred_img.putpalette(get_palette())
+                    pred_name = pred_name.replace('leftImg8bit', 'color')
+                    path = '{}/{}'.format(save_root, pred_name)
+                    pred_img.save(path)
             data_bar.set_description('{} Epoch: [{}/{}] Loss: {:.4f} FPS: {:.0f}'
                                      .format(data_loader.dataset.split.capitalize(), epoch, epochs,
                                              total_loss / total_num, total_num / total_time))
         # compute metrics
-        target_root = os.path.join(data_path, 'gtFine', data_loader.dataset.split, '*', '*labelIds.png')
-        pa, mpa, class_iou, category_iou = compute_metrics(save_root, target_root)
+        preds = torch.cat(preds, dim=0)
+        targets = torch.cat(targets, dim=0)
+        pa, mpa, class_iou, category_iou = compute_metrics(preds, targets)
         print('{} Epoch: [{}/{}] PA: {:.2f}% mPA: {:.2f}% Class_mIOU: {:.2f}% Category_mIOU: {:.2f}%'
               .format(data_loader.dataset.split.capitalize(), epoch, epochs,
                       pa * 100, mpa * 100, class_iou * 100, category_iou * 100))
@@ -96,8 +105,9 @@ if __name__ == '__main__':
     model = GatedSCNN(backbone_type=backbone_type, num_classes=19).cuda()
     optimizer = SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
-    # TODO
-    loss_criterion = nn.CrossEntropyLoss(ignore_index=255)
+    semantic_criterion = nn.CrossEntropyLoss(ignore_index=255)
+    # edge_criterion = nn.CrossEntropyLoss(ignore_index=255)
+    # task_criterion = nn.CrossEntropyLoss(ignore_index=255)
 
     results = {'train_loss': [], 'val_loss': [], 'train_PA': [], 'val_PA': [], 'train_mPA': [], 'val_mPA': [],
                'train_class_mIOU': [], 'val_class_mIOU': [], 'train_category_mIOU': [], 'val_category_mIOU': []}
@@ -118,8 +128,6 @@ if __name__ == '__main__':
         results['val_class_mIOU'].append(val_class_mIOU)
         results['val_category_mIOU'].append(val_category_mIOU)
         # save statistics
-        if not os.path.exists(save_path):
-            os.mkdir(save_path)
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('{}/{}_{}_{}_statistics.csv'.format(save_path, backbone_type, crop_h, crop_w),
                           index_label='epoch')
