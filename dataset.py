@@ -116,7 +116,7 @@ def creat_dataset(root, num_classes=19, ignore_label=255):
         if not os.path.exists(root):
             os.makedirs(root)
         # download dataset
-        os.system('csDownload -d {} gtFine_trainvaltest.zip leftImg8bit_trainvaltest.zip'.format(root))
+        os.system('csDownload -r -d {} gtFine_trainvaltest.zip leftImg8bit_trainvaltest.zip'.format(root))
         os.system("unzip -o {}/'*.zip' -d {}".format(root, root))
     search_path = os.path.join(root, 'gtFine', '*', '*', '*labelTrainIds.png')
     if not glob.glob(search_path):
