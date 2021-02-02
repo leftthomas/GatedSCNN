@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from dataset import creat_dataset, Cityscapes
 from model import GatedSCNN
-from utils import get_palette, compute_metrics, BoundaryBCELoss
+from utils import get_palette, compute_metrics, BoundaryBCELoss, DualTaskLoss
 
 # for reproducibility
 np.random.seed(1)
@@ -44,9 +44,8 @@ def for_loop(net, data_loader, train_optimizer):
             end_time = time.time()
             semantic_loss = semantic_criterion(seg, target)
             edge_loss = edge_criterion(edge, target, boundary)
-            # task_loss = task_criterion(seg, edge, target)
-            # loss = semantic_loss + 20 * edge_loss + task_loss
-            loss = semantic_loss + 20 * edge_loss
+            task_loss = task_criterion(seg, edge, target)
+            loss = semantic_loss + 20 * edge_loss + task_loss
 
             if is_train:
                 train_optimizer.zero_grad()
@@ -56,8 +55,8 @@ def for_loop(net, data_loader, train_optimizer):
             total_num += data.size(0)
             total_time += end_time - start_time
             total_loss += loss.item() * data.size(0)
-            preds.append(prediction)
-            targets.append(target)
+            preds.append(prediction.cpu())
+            targets.append(target.cpu())
 
             if not is_train:
                 # revert train id to regular id
@@ -115,7 +114,7 @@ if __name__ == '__main__':
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
     semantic_criterion = nn.CrossEntropyLoss(ignore_index=255)
     edge_criterion = BoundaryBCELoss(ignore_index=255)
-    # task_criterion = nn.CrossEntropyLoss(ignore_index=255)
+    task_criterion = DualTaskLoss(threshold=0.8, tau=1.0, ignore_index=255)
 
     results = {'train_loss': [], 'val_loss': [], 'train_PA': [], 'val_PA': [], 'train_mPA': [], 'val_mPA': [],
                'train_class_mIOU': [], 'val_class_mIOU': [], 'train_category_mIOU': [], 'val_category_mIOU': []}
