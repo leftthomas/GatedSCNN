@@ -39,10 +39,9 @@ class BoundaryBCELoss(nn.Module):
 
 
 class DualTaskLoss(nn.Module):
-    def __init__(self, threshold=0.8, tau=1.0, ignore_index=255):
+    def __init__(self, threshold=0.8, ignore_index=255):
         super().__init__()
         self.threshold = threshold
-        self.tau = tau
         self.ignore_index = ignore_index
 
     def forward(self, seg, edge, target):
@@ -50,13 +49,7 @@ class DualTaskLoss(nn.Module):
         logit = F.cross_entropy(seg, target, ignore_index=self.ignore_index, reduction='none')
         mask = target != self.ignore_index
         num = ((edge > self.threshold) & mask).sum()
-        loss_reg_left = (logit[edge > self.threshold].sum()) / num
-
-        logit = F.gumbel_softmax(seg.view(*seg.size()[:2], -1), tau=self.tau, dim=-1).view(*seg.size())
-        sobel_kernel = torch.tensor([[1.0, 2.0, 1.0], [0.0, 0.0, 0.0], [-1.0, -2.0, -1.0]], device=seg.device)
-        logit = F.conv2d(logit, sobel_kernel.repeat(seg.size(1), 1, 1, 1), padding=1, groups=seg.size(1))
-        logit = F.conv2d(logit, sobel_kernel.t().repeat(seg.size(1), 1, 1, 1), padding=1, groups=seg.size(1))
-        loss = loss_reg_left + loss_reg_right
+        loss = (logit[edge > self.threshold].sum()) / num
         return loss
 
 

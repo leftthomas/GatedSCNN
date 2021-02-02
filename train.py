@@ -114,7 +114,7 @@ if __name__ == '__main__':
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
     semantic_criterion = nn.CrossEntropyLoss(ignore_index=255)
     edge_criterion = BoundaryBCELoss(ignore_index=255)
-    task_criterion = DualTaskLoss(threshold=0.8, tau=1.0, ignore_index=255)
+    task_criterion = DualTaskLoss(threshold=0.8, ignore_index=255)
 
     results = {'train_loss': [], 'val_loss': [], 'train_PA': [], 'val_PA': [], 'train_mPA': [], 'val_mPA': [],
                'train_class_mIOU': [], 'val_class_mIOU': [], 'train_category_mIOU': [], 'val_category_mIOU': []}

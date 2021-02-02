@@ -64,7 +64,7 @@ The experiment is conducted on one NVIDIA TESLA V100 (32G) GPU, and there are so
 implementation and official implementation:
 
 1. `res2/res3/res4` are used in `GCLs`;
-2. No `dual task loss` used.
+2. The non-differentiable part of `dual task loss` is not implemented.
 
 <table>
 	<tbody>
