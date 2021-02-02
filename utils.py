@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from cityscapesscripts.helpers.labels import trainId2label
 from torch import nn
 from torchvision import transforms
@@ -24,14 +25,16 @@ class BoundaryBCELoss(nn.Module):
     def forward(self, edge, target, boundary):
         edge = edge.squeeze(dim=1)
         mask = target != self.ignore_index
-        pos_mask = boundary == 1.0
-        neg_mask = boundary == 0.0
+        pos_mask = (boundary == 1.0) & mask
+        neg_mask = (boundary == 0.0) & mask
         num = mask.sum()
-        pos_weight = neg_mask[mask].sum() / num
-        neg_weight = pos_mask[mask].sum() / num
-        pos_loss = -pos_weight * torch.log(edge[pos_mask & mask])
-        neg_loss = -neg_weight * torch.log(1.0 - edge[neg_mask & mask])
-        loss = pos_loss.mean() + neg_loss.mean()
+        pos_weight = neg_mask.sum() / num
+        neg_weight = pos_mask.sum() / num
+
+        weight = torch.zeros_like(boundary)
+        weight[pos_mask] = pos_weight
+        weight[neg_mask] = neg_weight
+        loss = F.binary_cross_entropy(edge, boundary, weight, reduction='sum') / num
         return loss
 
 
