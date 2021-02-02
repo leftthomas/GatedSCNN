@@ -1,5 +1,6 @@
 import torch
 from cityscapesscripts.helpers.labels import trainId2label
+from torch import nn
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -13,6 +14,25 @@ def get_palette():
         if key != -1 and key != 255:
             palette += list(trainId2label[key].color)
     return palette
+
+
+class BoundaryBCELoss(nn.Module):
+    def __init__(self, ignore_index=255):
+        super().__init__()
+        self.ignore_index = ignore_index
+
+    def forward(self, edge, target, boundary):
+        edge = edge.squeeze(dim=1)
+        mask = target != self.ignore_index
+        pos_mask = boundary == 1.0
+        neg_mask = boundary == 0.0
+        num = mask.sum()
+        pos_weight = neg_mask[mask].sum() / num
+        neg_weight = pos_mask[mask].sum() / num
+        pos_loss = -pos_weight * torch.log(edge[pos_mask & mask])
+        neg_loss = -neg_weight * torch.log(1.0 - edge[neg_mask & mask])
+        loss = pos_loss.mean() + neg_loss.mean()
+        return loss
 
 
 def compute_metrics(preds, targets, ignore_label=255, num_classes=19, num_category=7):

@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from dataset import creat_dataset, Cityscapes
 from model import GatedSCNN
-from utils import get_palette, compute_metrics
+from utils import get_palette, compute_metrics, BoundaryBCELoss
 
 # for reproducibility
 np.random.seed(1)
@@ -43,10 +43,10 @@ def for_loop(net, data_loader, train_optimizer):
             torch.cuda.synchronize()
             end_time = time.time()
             semantic_loss = semantic_criterion(seg, target)
-            # edge_loss = edge_criterion(edge, target)
+            edge_loss = edge_criterion(edge, target, boundary)
             # task_loss = task_criterion(seg, edge, target)
             # loss = semantic_loss + 20 * edge_loss + task_loss
-            loss = semantic_loss
+            loss = semantic_loss + 20 * edge_loss
 
             if is_train:
                 train_optimizer.zero_grad()
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     optimizer = SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
     scheduler = LambdaLR(optimizer, lr_lambda=lambda eiter: math.pow(1 - eiter / epochs, 1.0))
     semantic_criterion = nn.CrossEntropyLoss(ignore_index=255)
-    # edge_criterion = nn.CrossEntropyLoss(ignore_index=255)
+    edge_criterion = BoundaryBCELoss(ignore_index=255)
     # task_criterion = nn.CrossEntropyLoss(ignore_index=255)
 
     results = {'train_loss': [], 'val_loss': [], 'train_PA': [], 'val_PA': [], 'train_mPA': [], 'val_mPA': [],
