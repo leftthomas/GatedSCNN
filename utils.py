@@ -89,6 +89,3 @@ def compute_metrics(preds, targets, ignore_label=255, num_classes=19, num_catego
     class_iou = (class_tt / max(class_tf + class_ft - class_tt, 1)).mean()
     category_iou = (category_tt / max(category_tf + category_ft - category_tt, 1)).mean()
     return pa.item(), mpa.item(), class_iou.item(), category_iou.item()
-
-
-f
