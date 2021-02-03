@@ -172,7 +172,7 @@ def creat_dataset(root, num_classes=19, ignore_label=255):
         files = glob.glob(search_path)
         files.sort()
         # use multiprocessing to generate grad images
-        print('Generating {} grad images'.format(len(files)))
+        print('\nGenerating {} grad images'.format(len(files)))
         print("Progress: {:>3} %".format(grad_progress * 100 / len(files)), end=' ')
         pool = ThreadPool()
         pool.map(partial(generate_grad, total_num=len(files)), files)
@@ -185,7 +185,7 @@ def creat_dataset(root, num_classes=19, ignore_label=255):
         files = glob.glob(search_path)
         files.sort()
         # use multiprocessing to generate boundary images
-        print('Generating {} boundary images'.format(len(files)))
+        print('\nGenerating {} boundary images'.format(len(files)))
         print("Progress: {:>3} %".format(boundary_progress * 100 / len(files)), end=' ')
         pool = ThreadPool()
         pool.map(partial(generate_boundary, num_classes=num_classes, ignore_label=ignore_label, total_num=len(files)),
