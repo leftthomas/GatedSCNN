@@ -43,8 +43,8 @@ optional arguments:
 --backbone_type               Backbone type [default value is 'resnet50'](choices=['resnet50', 'resnet101'])
 --crop_h                      Crop height for training images [default value is 800]
 --crop_w                      Crop width for training images [default value is 800]
---batch_size                  Number of data for each batch to train [default value is 16]
---epochs                      Number of sweeps over the dataset to train [default value is 230]
+--batch_size                  Number of data for each batch to train [default value is 4]
+--epochs                      Number of sweeps over the dataset to train [default value is 50]
 --save_path                   Save path for results [default value is 'results']
 ```
 
@@ -64,7 +64,9 @@ The experiment is conducted on one NVIDIA TESLA V100 (32G) GPU, and there are so
 implementation and official implementation:
 
 1. `res2/res3/res4` are used in `GCLs`;
-2. The non-differentiable part of `dual task loss` is not implemented.
+2. The non-differentiable part of `dual task loss` is not implemented;
+3. The model with `resnet50` backbone trained with `batch_size 4` for `50 epochs`;
+4. The model with `resnet101` backbone trained with `batch_size 3` for `40 epochs`.
 
 <table>
 	<tbody>

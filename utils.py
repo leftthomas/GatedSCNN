@@ -27,7 +27,7 @@ class BoundaryBCELoss(nn.Module):
         mask = target != self.ignore_index
         pos_mask = (boundary == 1.0) & mask
         neg_mask = (boundary == 0.0) & mask
-        num = mask.sum()
+        num = max(mask.sum(), 1)
         pos_weight = neg_mask.sum() / num
         neg_weight = pos_mask.sum() / num
 
@@ -48,7 +48,7 @@ class DualTaskLoss(nn.Module):
         edge = edge.squeeze(dim=1)
         logit = F.cross_entropy(seg, target, ignore_index=self.ignore_index, reduction='none')
         mask = target != self.ignore_index
-        num = ((edge > self.threshold) & mask).sum()
+        num = max(((edge > self.threshold) & mask).sum(), 1)
         loss = (logit[edge > self.threshold].sum()) / num
         return loss
 

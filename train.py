@@ -92,8 +92,8 @@ if __name__ == '__main__':
                         help='Backbone type')
     parser.add_argument('--crop_h', default=800, type=int, help='Crop height for training images')
     parser.add_argument('--crop_w', default=800, type=int, help='Crop width for training images')
-    parser.add_argument('--batch_size', default=16, type=int, help='Number of data for each batch to train')
-    parser.add_argument('--epochs', default=230, type=int, help='Number of sweeps over the dataset to train')
+    parser.add_argument('--batch_size', default=4, type=int, help='Number of data for each batch to train')
+    parser.add_argument('--epochs', default=50, type=int, help='Number of sweeps over the dataset to train')
     parser.add_argument('--save_path', default='results', type=str, help='Save path for results')
 
     # args parse
