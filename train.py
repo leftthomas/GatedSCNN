@@ -63,7 +63,7 @@ def for_loop(net, data_loader, train_optimizer):
                 for key in sorted(trainId2label.keys(), reverse=True):
                     prediction[prediction == key] = trainId2label[key].id
                 # save pred images
-                save_root = '{}/{}'.format(save_path, data_loader.dataset.split)
+                save_root = '{}/{}_{}_{}/{}'.format(save_path, backbone_type, crop_h, crop_w, data_loader.dataset.split)
                 if not os.path.exists(save_root):
                     os.makedirs(save_root)
                 for pred_tensor, pred_name in zip(prediction, name):
