@@ -27,7 +27,7 @@ class BoundaryBCELoss(nn.Module):
         mask = target != self.ignore_index
         pos_mask = (boundary == 1.0) & mask
         neg_mask = (boundary == 0.0) & mask
-        num = max(mask.sum(), 1)
+        num = torch.clamp(mask.sum(), min=1)
         pos_weight = neg_mask.sum() / num
         neg_weight = pos_mask.sum() / num
 
@@ -48,7 +48,7 @@ class DualTaskLoss(nn.Module):
         edge = edge.squeeze(dim=1)
         logit = F.cross_entropy(seg, target, ignore_index=self.ignore_index, reduction='none')
         mask = target != self.ignore_index
-        num = max(((edge > self.threshold) & mask).sum(), 1)
+        num = torch.clamp(((edge > self.threshold) & mask).sum(), min=1)
         loss = (logit[edge > self.threshold].sum()) / num
         return loss
 
@@ -84,8 +84,8 @@ def compute_metrics(preds, targets, ignore_label=255, num_classes=19, num_catego
             category_tt[label] += (category_tf_mask & category_ft_mask).sum()
             category_tf[label] += category_tf_mask.sum()
             category_ft[label] += category_ft_mask.sum()
-    pa = correct_pixel / max(total_pixel, 1)
-    mpa = (class_tt / max(class_tf, 1)).mean()
-    class_iou = (class_tt / max(class_tf + class_ft - class_tt, 1)).mean()
-    category_iou = (category_tt / max(category_tf + category_ft - category_tt, 1)).mean()
+    pa = correct_pixel / torch.clamp(total_pixel, min=1)
+    mpa = (class_tt / torch.clamp(class_tf, min=1)).mean()
+    class_iou = (class_tt / torch.clamp(class_tf + class_ft - class_tt, min=1)).mean()
+    category_iou = (category_tt / torch.clamp(category_tf + category_ft - category_tt, min=1)).mean()
     return pa.item(), mpa.item(), class_iou.item(), category_iou.item()
