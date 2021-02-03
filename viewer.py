@@ -14,7 +14,7 @@ from utils import transform, get_palette
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict segmentation result from a given image')
     parser.add_argument('--data_path', default='data', type=str, help='Data path for cityscapes dataset')
-    parser.add_argument('--model_weight', type=str, default='results/resnet50_800_800_model.pth',
+    parser.add_argument('--model_weight', type=str, default='results/resnet50_512_512_model.pth',
                         help='Pretrained model weight')
     parser.add_argument('--input_pic', type=str, default='test/berlin/berlin_000000_000019_leftImg8bit.png',
                         help='Path to the input picture')

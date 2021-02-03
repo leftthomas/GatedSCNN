@@ -41,8 +41,8 @@ python train.py --epochs 175 --backbone_type resnet101
 optional arguments:
 --data_path                   Data path for cityscapes dataset [default value is 'data']
 --backbone_type               Backbone type [default value is 'resnet50'](choices=['resnet50', 'resnet101'])
---crop_h                      Crop height for training images [default value is 800]
---crop_w                      Crop width for training images [default value is 800]
+--crop_h                      Crop height for training images [default value is 512]
+--crop_w                      Crop width for training images [default value is 512]
 --batch_size                  Number of data for each batch to train [default value is 4]
 --epochs                      Number of sweeps over the dataset to train [default value is 60]
 --save_path                   Save path for results [default value is 'results']
@@ -54,20 +54,18 @@ optional arguments:
 python viewer.py --model_weight resnet101_800_800_model.pth
 optional arguments:
 --data_path                   Data path for cityscapes dataset [default value is 'data']
---model_weight                Pretrained model weight [default value is 'results/resnet50_800_800_model.pth']
+--model_weight                Pretrained model weight [default value is 'results/resnet50_512_512_model.pth']
 --input_pic                   Path to the input picture [default value is 'test/berlin/berlin_000000_000019_leftImg8bit.png']
 ```
 
 ## Results
 
-The experiment is conducted on one NVIDIA TESLA V100 (32G) GPU, and there are some difference between this
-implementation and official implementation:
+The experiment is conducted on one NVIDIA TITAN RTX (24G) GPU, and there are some difference between this implementation
+and official implementation:
 
 1. `res2/res3/res4` are used in `GCLs`;
 2. The non-differentiable part of `dual task loss` is not implemented;
-3. The model is trained for `60 epochs`;
-4. The model with `resnet50` backbone is trained with `batch_size 4`;
-5. The model with `resnet101` backbone is trained with `batch_size 3`.
+3. The model is trained for `60 epochs` with `batch_size 4` on `512x512` images.
 
 <table>
 	<tbody>

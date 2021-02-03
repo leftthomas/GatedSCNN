@@ -90,8 +90,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', default='data', type=str, help='Data path for cityscapes dataset')
     parser.add_argument('--backbone_type', default='resnet50', type=str, choices=['resnet50', 'resnet101'],
                         help='Backbone type')
-    parser.add_argument('--crop_h', default=800, type=int, help='Crop height for training images')
-    parser.add_argument('--crop_w', default=800, type=int, help='Crop width for training images')
+    parser.add_argument('--crop_h', default=512, type=int, help='Crop height for training images')
+    parser.add_argument('--crop_w', default=512, type=int, help='Crop width for training images')
     parser.add_argument('--batch_size', default=4, type=int, help='Number of data for each batch to train')
     parser.add_argument('--epochs', default=60, type=int, help='Number of sweeps over the dataset to train')
     parser.add_argument('--save_path', default='results', type=str, help='Save path for results')
