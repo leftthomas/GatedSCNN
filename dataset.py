@@ -118,6 +118,7 @@ def generate_grad(image_name):
     # do the conversion
     grad_image = cv2.Canny(cv2.imread(image_name), 10, 100)
     cv2.imwrite(dst, grad_image)
+    print('converting {} into {}'.format(image_name, dst))
 
 
 def generate_boundary(image_name, num_classes, ignore_label):
@@ -138,6 +139,7 @@ def generate_boundary(image_name, num_classes, ignore_label):
         boundary_image += dist
     boundary_image = (boundary_image > 0).astype(np.uint8)
     cv2.imwrite(dst, boundary_image)
+    print('converting {} into {}'.format(image_name, dst))
 
 
 def creat_dataset(root, num_classes=19, ignore_label=255):
