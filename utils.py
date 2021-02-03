@@ -84,8 +84,11 @@ def compute_metrics(preds, targets, ignore_label=255, num_classes=19, num_catego
             category_tt[label] += (category_tf_mask & category_ft_mask).sum()
             category_tf[label] += category_tf_mask.sum()
             category_ft[label] += category_ft_mask.sum()
-    pa = correct_pixel / total_pixel
-    mpa = (class_tt / class_tf).mean()
-    class_iou = (class_tt / (class_tf + class_ft - class_tt)).mean()
-    category_iou = (category_tt / (category_tf + category_ft - category_tt)).mean()
+    pa = correct_pixel / max(total_pixel, 1)
+    mpa = (class_tt / max(class_tf, 1)).mean()
+    class_iou = (class_tt / max(class_tf + class_ft - class_tt, 1)).mean()
+    category_iou = (category_tt / max(category_tf + category_ft - category_tt, 1)).mean()
     return pa.item(), mpa.item(), class_iou.item(), category_iou.item()
+
+
+f
