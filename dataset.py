@@ -1,12 +1,13 @@
 import glob
 import os
 import random
+from functools import partial
+from multiprocessing.dummy import Pool as ThreadPool
 
 import cv2
 import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 from torch.utils.data import Dataset
-from tqdm import tqdm
 
 from utils import city_mean, city_std
 
@@ -110,6 +111,35 @@ class Cityscapes(Dataset):
         return image.copy(), label.copy(), np.expand_dims(grad, axis=0).copy(), boundary.copy(), name
 
 
+def generate_grad(image_name):
+    # create the output filename
+    dst = image_name.replace('/leftImg8bit/', '/gtFine/')
+    dst = dst.replace('_leftImg8bit', '_gtFine_grad')
+    # do the conversion
+    grad_image = cv2.Canny(cv2.imread(image_name), 10, 100)
+    cv2.imwrite(dst, grad_image)
+
+
+def generate_boundary(image_name, num_classes, ignore_label):
+    # create the output filename
+    dst = image_name.replace('_labelTrainIds', '_boundary')
+    # do the conversion
+    semantic_image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
+    onehot_image = np.array([semantic_image == i for i in range(num_classes)]).astype(np.uint8)
+    # change the ignored label to 0
+    onehot_image[onehot_image == ignore_label] = 0
+    boundary_image = np.zeros(onehot_image.shape[1:])
+    # for boundary conditions
+    onehot_image = np.pad(onehot_image, ((0, 0), (1, 1), (1, 1)), mode='constant', constant_values=0)
+    for i in range(num_classes):
+        dist = distance_transform_edt(onehot_image[i, :]) + distance_transform_edt(1.0 - onehot_image[i, :])
+        dist = dist[1:-1, 1:-1]
+        dist[dist > 2] = 0
+        boundary_image += dist
+    boundary_image = (boundary_image > 0).astype(np.uint8)
+    cv2.imwrite(dst, boundary_image)
+
+
 def creat_dataset(root, num_classes=19, ignore_label=255):
     search_path = os.path.join(root, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
     if not glob.glob(search_path):
@@ -129,35 +159,21 @@ def creat_dataset(root, num_classes=19, ignore_label=255):
         search_path = os.path.join(root, 'leftImg8bit', '*', '*', '*leftImg8bit.png')
         files = glob.glob(search_path)
         files.sort()
-        # generate grad images
-        for f in tqdm(files, desc='generating grad images', dynamic_ncols=True):
-            # create the output filename
-            dst = f.replace('/leftImg8bit/', '/gtFine/')
-            dst = dst.replace('_leftImg8bit', '_gtFine_grad')
-            # do the conversion
-            grad_image = cv2.Canny(cv2.imread(f), 10, 100)
-            cv2.imwrite(dst, grad_image)
+        # use multiprocessing to generate grad images
+        print('generating grad images...')
+        pool = ThreadPool()
+        pool.map(generate_grad, files)
+        pool.close()
+        pool.join()
+
     search_path = os.path.join(root, 'gtFine', '*', '*', '*boundary.png')
     if not glob.glob(search_path):
         search_path = os.path.join(root, 'gtFine', '*', '*', '*labelTrainIds.png')
         files = glob.glob(search_path)
         files.sort()
-        # generate boundary images
-        for f in tqdm(files, desc='generating boundary images', dynamic_ncols=True):
-            # create the output filename
-            dst = f.replace('_labelTrainIds', '_boundary')
-            # do the conversion
-            semantic_image = cv2.imread(f, cv2.IMREAD_GRAYSCALE)
-            onehot_image = np.array([semantic_image == i for i in range(num_classes)]).astype(np.uint8)
-            # change the ignored label to 0
-            onehot_image[onehot_image == ignore_label] = 0
-            boundary_image = np.zeros(onehot_image.shape[1:])
-            # for boundary conditions
-            onehot_image = np.pad(onehot_image, ((0, 0), (1, 1), (1, 1)), mode='constant', constant_values=0)
-            for i in range(num_classes):
-                dist = distance_transform_edt(onehot_image[i, :]) + distance_transform_edt(1.0 - onehot_image[i, :])
-                dist = dist[1:-1, 1:-1]
-                dist[dist > 2] = 0
-                boundary_image += dist
-            boundary_image = (boundary_image > 0).astype(np.uint8)
-            cv2.imwrite(dst, boundary_image)
+        # use multiprocessing to generate boundary images
+        print('generating boundary images, it is time consuming...')
+        pool = ThreadPool()
+        pool.map(partial(generate_boundary, num_classes=num_classes, ignore_label=ignore_label), files)
+        pool.close()
+        pool.join()
