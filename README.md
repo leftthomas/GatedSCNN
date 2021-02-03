@@ -44,7 +44,7 @@ optional arguments:
 --crop_h                      Crop height for training images [default value is 800]
 --crop_w                      Crop width for training images [default value is 800]
 --batch_size                  Number of data for each batch to train [default value is 4]
---epochs                      Number of sweeps over the dataset to train [default value is 40]
+--epochs                      Number of sweeps over the dataset to train [default value is 60]
 --save_path                   Save path for results [default value is 'results']
 ```
 
@@ -65,7 +65,7 @@ implementation and official implementation:
 
 1. `res2/res3/res4` are used in `GCLs`;
 2. The non-differentiable part of `dual task loss` is not implemented;
-3. The model is trained for `40 epochs`;
+3. The model is trained for `60 epochs`;
 4. The model with `resnet50` backbone is trained with `batch_size 4`;
 5. The model with `resnet101` backbone is trained with `batch_size 3`.
 
