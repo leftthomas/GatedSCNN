@@ -59,16 +59,18 @@ def for_loop(net, data_loader, train_optimizer):
             targets.append(target.cpu())
 
             if not is_train:
-                # revert train id to regular id
-                for key in sorted(trainId2label.keys(), reverse=True):
-                    prediction[prediction == key] = trainId2label[key].id
+                if data_loader.dataset.split == 'test':
+                    # revert train id to regular id
+                    for key in sorted(trainId2label.keys(), reverse=True):
+                        prediction[prediction == key] = trainId2label[key].id
                 # save pred images
                 save_root = '{}/{}_{}_{}/{}'.format(save_path, backbone_type, crop_h, crop_w, data_loader.dataset.split)
                 if not os.path.exists(save_root):
                     os.makedirs(save_root)
                 for pred_tensor, pred_name in zip(prediction, name):
                     pred_img = ToPILImage()(pred_tensor.unsqueeze(dim=0).byte().cpu())
-                    pred_img.putpalette(get_palette())
+                    if data_loader.dataset.split == 'val':
+                        pred_img.putpalette(get_palette())
                     pred_name = pred_name.replace('leftImg8bit', 'color')
                     path = '{}/{}'.format(save_root, pred_name)
                     pred_img.save(path)

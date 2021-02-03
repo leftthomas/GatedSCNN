@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
-from cityscapesscripts.helpers.labels import trainId2label
 from torchvision.transforms import ToPILImage
 
 from model import GatedSCNN
@@ -42,8 +41,6 @@ if __name__ == '__main__':
     with torch.no_grad():
         output, _ = model(image, grad)
         pred = torch.argmax(output, dim=1)
-        for key in sorted(trainId2label.keys(), reverse=True):
-            pred[pred == key] = trainId2label[key].id
         pred_image = ToPILImage()(pred.byte().cpu())
         pred_image.putpalette(get_palette())
         if 'test' not in input_pic:
