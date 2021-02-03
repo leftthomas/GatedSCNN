@@ -1,6 +1,7 @@
 import glob
 import os
 import random
+import sys
 from functools import partial
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -10,6 +11,9 @@ from scipy.ndimage.morphology import distance_transform_edt
 from torch.utils.data import Dataset
 
 from utils import city_mean, city_std
+
+grad_progress = 0
+boundary_progress = 0
 
 
 class Cityscapes(Dataset):
@@ -111,17 +115,20 @@ class Cityscapes(Dataset):
         return image.copy(), label.copy(), np.expand_dims(grad, axis=0).copy(), boundary.copy(), name
 
 
-def generate_grad(image_name):
+def generate_grad(image_name, total_num):
     # create the output filename
     dst = image_name.replace('/leftImg8bit/', '/gtFine/')
     dst = dst.replace('_leftImg8bit', '_gtFine_grad')
     # do the conversion
     grad_image = cv2.Canny(cv2.imread(image_name), 10, 100)
     cv2.imwrite(dst, grad_image)
-    print('converting {} into {}'.format(image_name, dst))
+    global grad_progress
+    grad_progress += 1
+    print("\rProgress: {:>3} %".format(grad_progress * 100 / total_num), end=' ')
+    sys.stdout.flush()
 
 
-def generate_boundary(image_name, num_classes, ignore_label):
+def generate_boundary(image_name, num_classes, ignore_label, total_num):
     # create the output filename
     dst = image_name.replace('_labelTrainIds', '_boundary')
     # do the conversion
@@ -139,7 +146,10 @@ def generate_boundary(image_name, num_classes, ignore_label):
         boundary_image += dist
     boundary_image = (boundary_image > 0).astype(np.uint8)
     cv2.imwrite(dst, boundary_image)
-    print('converting {} into {}'.format(image_name, dst))
+    global boundary_progress
+    boundary_progress += 1
+    print("\rProgress: {:>3} %".format(boundary_progress * 100 / total_num), end=' ')
+    sys.stdout.flush()
 
 
 def creat_dataset(root, num_classes=19, ignore_label=255):
@@ -162,9 +172,10 @@ def creat_dataset(root, num_classes=19, ignore_label=255):
         files = glob.glob(search_path)
         files.sort()
         # use multiprocessing to generate grad images
-        print('generating grad images...')
+        print('Generating {} grad images'.format(len(files)))
+        print("Progress: {:>3} %".format(grad_progress * 100 / len(files)), end=' ')
         pool = ThreadPool()
-        pool.map(generate_grad, files)
+        pool.map(partial(generate_grad, total_num=len(files)), files)
         pool.close()
         pool.join()
 
@@ -174,8 +185,10 @@ def creat_dataset(root, num_classes=19, ignore_label=255):
         files = glob.glob(search_path)
         files.sort()
         # use multiprocessing to generate boundary images
-        print('generating boundary images, it is time consuming...')
+        print('Generating {} boundary images'.format(len(files)))
+        print("Progress: {:>3} %".format(boundary_progress * 100 / len(files)), end=' ')
         pool = ThreadPool()
-        pool.map(partial(generate_boundary, num_classes=num_classes, ignore_label=ignore_label), files)
+        pool.map(partial(generate_boundary, num_classes=num_classes, ignore_label=ignore_label, total_num=len(files)),
+                 files)
         pool.close()
         pool.join()
