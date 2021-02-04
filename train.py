@@ -137,6 +137,7 @@ if __name__ == '__main__':
         results['val_mPA'].append(val_mPA)
         results['val_class_mIOU'].append(val_class_mIOU)
         results['val_category_mIOU'].append(val_category_mIOU)
+        scheduler.step()
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('{}/{}_{}_{}_statistics.csv'.format(save_path, backbone_type, crop_h, crop_w),
