@@ -76,8 +76,6 @@ and official implementation:
 		<th>mPA<sup>val</sup></th>
 		<th>Class mIOU<sup>val</sup></th>
 		<th>Category mIOU<sup>val</sup></th>
-		<th>PA<sup>test</sup></th>
-		<th>mPA<sup>test</sup></th>
 		<th>Class mIOU<sup>test</sup></th>
 		<th>Category mIOU<sup>test</sup></th>
 		<th>FPS</th>
@@ -85,16 +83,14 @@ and official implementation:
 		<!-- TABLE BODY -->
 		<tr>
 			<td align="center">ResNet50</td>
-			<td align="center">81.8</td>
-			<td align="center">81.8</td>
-			<td align="center">58.0</td>
-			<td align="center">81.7</td>
-			<td align="center">81.8</td>
-            <td align="center">81.8</td>
-			<td align="center">58.0</td>
-			<td align="center">81.7</td>
-			<td align="center">197</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">eg6a</a></td>
+			<td align="center">92.6</td>
+			<td align="center">62.4</td>
+			<td align="center">53.1</td>
+			<td align="center">82.3</td>
+			<td align="center">53.5</td>
+			<td align="center">83.3</td>
+			<td align="center">2</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1dJdxZ1rVC-JuOesuXo96dQ">dsjb</a></td>
 		</tr>
 		<tr>
 			<td align="center">ResNet101</td>
@@ -102,8 +98,6 @@ and official implementation:
 			<td align="center">81.8</td>
 			<td align="center">58.0</td>
 			<td align="center">81.7</td>
-			<td align="center">81.8</td>
-            <td align="center">81.8</td>
 			<td align="center">58.0</td>
 			<td align="center">81.7</td>
 			<td align="center">197</td>
@@ -114,5 +108,11 @@ and official implementation:
 
 The left is the input image, the middle is ground truth segmentation, and the right is model's predicted segmentation.
 
-![munster_000120_000019](result.png)
+### ResNet50
+
+![munster_000105_000019](resnet50.png)
+
+### ResNet101
+
+![munster_000105_000019](resnet50.png)
 
