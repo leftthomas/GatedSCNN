@@ -32,7 +32,7 @@ if __name__ == '__main__':
     grad = torch.from_numpy(np.expand_dims(np.asarray(grad, np.float32) / 255.0, axis=0).copy()).unsqueeze(dim=0).cuda()
 
     # model load
-    model = GatedSCNN(model_weight.split('_')[0], num_classes=19)
+    model = GatedSCNN(model_weight.split('/')[-1].split('_')[0], num_classes=19)
     model.load_state_dict(torch.load(model_weight, map_location=torch.device('cpu')))
     model = model.cuda()
     model.eval()
