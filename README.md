@@ -94,13 +94,13 @@ and official implementation:
 		</tr>
 		<tr>
 			<td align="center">ResNet101</td>
-			<td align="center">81.8</td>
-			<td align="center">81.8</td>
-			<td align="center">58.0</td>
-			<td align="center">81.7</td>
-			<td align="center">58.0</td>
-			<td align="center">81.7</td>
-			<td align="center">197</td>
+			<td align="center">-</td>
+			<td align="center">-</td>
+			<td align="center">-</td>
+			<td align="center">-</td>
+			<td align="center">-</td>
+			<td align="center">-</td>
+			<td align="center">-</td>
 			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">eg6a</a></td>
 		</tr>
 	</tbody>
