@@ -92,27 +92,12 @@ and official implementation:
 			<td align="center">2</td>
 			<td align="center"><a href="https://pan.baidu.com/s/1dJdxZ1rVC-JuOesuXo96dQ">dsjb</a></td>
 		</tr>
-		<tr>
-			<td align="center">ResNet101</td>
-			<td align="center">-</td>
-			<td align="center">-</td>
-			<td align="center">-</td>
-			<td align="center">-</td>
-			<td align="center">-</td>
-			<td align="center">-</td>
-			<td align="center">-</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1cmcAtDewYs2lWK7LaktofQ">eg6a</a></td>
-		</tr>
 	</tbody>
 </table>
 
 The left is the input image, the middle is ground truth segmentation, and the right is model's predicted segmentation.
 
 ### ResNet50
-
-![munster_000105_000019](resnet50.png)
-
-### ResNet101
 
 ![munster_000105_000019](resnet50.png)
 
